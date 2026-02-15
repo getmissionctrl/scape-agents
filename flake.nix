@@ -60,6 +60,10 @@
           path = ./templates/duckdb-analyst;
           description = "DuckDB analyst with Python and data tools";
         };
+        debug = {
+          path = ./templates/debug;
+          description = "Debug template with SSH and verbose logging";
+        };
       };
 
       devShells.${system}.default = hsPkgs.shellFor {

@@ -39,6 +39,11 @@
       mac = "02:00:00:00:00:01";
     }];
 
+    # Vsock for control plane (agent <-> orchestrator)
+    vsock = {
+      cid = 3;  # Guest CID (host is always 2)
+    };
+
     # No persistent volumes - ephemeral sandbox
     volumes = [];
   };
