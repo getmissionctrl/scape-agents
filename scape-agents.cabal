@@ -1,0 +1,167 @@
+cabal-version: 3.0
+name:          scape-agents
+version:       0.1.0.0
+synopsis:      Scape agent, protocol types, and shared library
+description:
+  Public library and agent executable for the Scape agentic execution platform.
+  Contains shared protocol types, the microVM agent, and NixOS modules.
+
+license:       MIT
+author:        Future Horizons
+maintainer:    dev@futurehorizons.io
+category:      System, Network
+build-type:    Simple
+
+library
+  exposed-modules:
+    -- Shared protocol types
+    Scape.Protocol.Types
+    Scape.Protocol.Control
+    Scape.Protocol.Command
+    Scape.Protocol.Observation
+    Scape.Protocol.Transport
+    Scape.Protocol.AISDK
+    Scape.Protocol.MMDS
+    -- NATS client wrapper
+    Scape.Nats
+    -- Agent implementation
+    Scape.Agent.API
+    Scape.Agent.Executor
+    Scape.Agent.Logging
+    Scape.Agent.MMDS
+    Scape.Agent.Nats
+    Scape.Agent.Server
+    Scape.Agent.Vsock
+    Scape.Agent.State
+    Scape.Agent.Metrics
+    Scape.Agent.Stream.WebSocket
+    Scape.Agent.Stream.SSE
+
+  build-depends:
+      base >= 4.17 && < 5
+    , aeson >= 2.1
+    , async
+    , base64-bytestring
+    , bytestring
+    , containers
+    , directory
+    , filepath
+    , http-api-data
+    , http-client
+    , http-conduit
+    , http-types
+    , ip
+    , katip
+    , machines
+    , mtl
+    , natskell
+    , network
+    , network-info
+    , optics-core
+    , process
+    , servant >= 0.20
+    , servant-server
+    , servant-event-stream
+    , servant-websockets
+    , stm
+    , text
+    , time
+    , unliftio-core
+    , unix
+    , uuid
+    , wai
+    , warp
+    , websockets
+
+  hs-source-dirs: src
+  default-language: GHC2021
+
+  ghc-options:
+    -Wall
+    -Werror
+    -Wcompat
+    -Widentities
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wmissing-export-lists
+    -Wredundant-constraints
+
+  default-extensions:
+    DataKinds
+    DeriveAnyClass
+    DeriveGeneric
+    DerivingStrategies
+    DerivingVia
+    DuplicateRecordFields
+    LambdaCase
+    OverloadedLabels
+    OverloadedRecordDot
+    OverloadedStrings
+    PackageImports
+    RecordWildCards
+    StrictData
+    TemplateHaskell
+    TypeAbstractions
+    TypeFamilies
+    TypeOperators
+
+executable scape-agent
+  main-is: Agent.hs
+  hs-source-dirs: app
+  default-language: GHC2021
+  ghc-options: -Wall -Werror -threaded -rtsopts -with-rtsopts=-N
+  default-extensions:
+    DuplicateRecordFields
+    LambdaCase
+    OverloadedRecordDot
+    OverloadedStrings
+  build-depends:
+      base >= 4.17 && < 5
+    , scape-agents
+    , async
+    , base64-bytestring
+    , bytestring
+    , containers
+    , directory
+    , filepath
+    , katip
+    , optparse-applicative
+    , stm
+    , text
+    , time
+    , unix
+
+test-suite scape-agents-test
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules:
+    Agent.StateSpec
+    Agent.ExecutorSpec
+    Agent.NatsSpec
+    Protocol.CommandSpec
+    Protocol.ObservationSpec
+    Protocol.MMDSSpec
+    Integration.AgentSpec
+    Test.Nats
+  hs-source-dirs: test
+  default-language: GHC2021
+  ghc-options: -Wall -Werror -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >= 4.17 && < 5
+    , scape-agents
+    , aeson
+    , base64-bytestring
+    , bytestring
+    , containers
+    , directory
+    , hspec
+    , ip
+    , katip
+    , natskell
+    , network
+    , process
+    , QuickCheck
+    , stm
+    , text
+    , time
+    , uuid
