@@ -2,10 +2,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Agent.NatsSpec (spec) where
 
+import Data.Aeson (encode, eitherDecode)
+import qualified Data.Aeson as Aeson
+import qualified Data.Aeson.KeyMap as KM
 import qualified Net.IPv4 as IPv4
 import Test.Hspec
 
 import Scape.Agent.Nats (NatsAgentConfig(..), fromMMDSConfig, discoverIpAddress)
+import qualified Scape.Agent.Nats as AN
 import qualified Scape.Protocol.MMDS as MMDS
 
 spec :: Spec
@@ -91,6 +95,25 @@ spec = describe "Nats" $ do
       let result = fromMMDSConfig "mytemplate" mmdsNats
       announceSubject result `shouldBe` Just "scape.build.mytemplate.ready"
       credsFileContent result `shouldBe` Just credsContent
+
+  describe "ReadyAnnouncement" $ do
+    it "round-trips through JSON" $ do
+      -- ReadyAnnouncement fields: instanceId, ipAddress, port, ready
+      let ann = AN.ReadyAnnouncement "python-sandbox" "10.99.0.42" 8080 True
+      eitherDecode (encode ann) `shouldBe` Right ann
+
+    it "encodes with expected field names" $ do
+      let ann = AN.ReadyAnnouncement "test" "10.0.0.1" 9090 True
+          encoded = encode ann
+          decoded = eitherDecode encoded :: Either String Aeson.Value
+      case decoded of
+        Left err -> expectationFailure err
+        Right (Aeson.Object obj) -> do
+          KM.lookup "ip" obj `shouldBe` Just (Aeson.String "10.0.0.1")
+          KM.lookup "port" obj `shouldBe` Just (Aeson.Number 9090)
+          KM.lookup "ready" obj `shouldBe` Just (Aeson.Bool True)
+          KM.lookup "instanceId" obj `shouldBe` Just (Aeson.String "test")
+        Right _ -> expectationFailure "Expected JSON object"
 
   describe "discoverIpAddress" $ do
     it "discovers a valid IPv4 address on the host machine" $ do
