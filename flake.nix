@@ -8,9 +8,14 @@
       url = "github:getmissionctrl/natskell";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    microvm = {
+      url = "github:microvm-nix/microvm.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, natskell, ... }:
+  outputs = { self, nixpkgs, natskell, microvm, ... }:
     let
       system = "x86_64-linux";
       pkgs = import nixpkgs { inherit system; };
@@ -30,6 +35,16 @@
           librarySystemDepends = (old.librarySystemDepends or []) ++ [ pkgs.zlib ];
           testToolDepends = (old.testToolDepends or []) ++ [ pkgs.nats-server ];
         });
+
+      # Build a template as a NixOS microVM configuration
+      mkTemplate = name: nixpkgs.lib.nixosSystem {
+        inherit system;
+        specialArgs = { inherit self; };
+        modules = [
+          microvm.nixosModules.microvm
+          ./templates/${name}/default.nix
+        ];
+      };
     in {
       nixosModules = {
         # Agent-only mode: for inside VMs
@@ -45,12 +60,24 @@
         base-vm = ./modules/base-vm.nix;
       };
 
+      # NixOS configurations for each template (microVM systems)
+      nixosConfigurations = {
+        debug = mkTemplate "debug";
+        python-sandbox = mkTemplate "python-sandbox";
+        duckdb-analyst = mkTemplate "duckdb-analyst";
+      };
+
       packages.${system} = {
         default = scapeAgentsPkg;
         scape-agents = scapeAgentsPkg;
+
+        # MicroVM runners (what `nix build .#debug` produces)
+        debug = self.nixosConfigurations.debug.config.microvm.declaredRunner;
+        python-sandbox = self.nixosConfigurations.python-sandbox.config.microvm.declaredRunner;
+        duckdb-analyst = self.nixosConfigurations.duckdb-analyst.config.microvm.declaredRunner;
       };
 
-      # Template flake outputs for `scape-ctl template add --flake-ref`
+      # Template flake outputs for `nix flake init`
       templates = {
         python-sandbox = {
           path = ./templates/python-sandbox;
