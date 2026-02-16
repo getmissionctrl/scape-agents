@@ -5,7 +5,7 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     natskell = {
-      url = "github:getmissionctrl/natskell";
+      url = "github:getmissionctrl/natskell/fix/msg-payload-framing";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 

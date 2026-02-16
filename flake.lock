@@ -45,15 +45,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1769207505,
-        "narHash": "sha256-euOb742P7k6N4xoQ8/WXDchy7Zn/pi/RCU/5bK8cd/A=",
+        "lastModified": 1771247689,
+        "narHash": "sha256-MlorHWnmuzxn8Auu+n4TDJhCNDB+1AbIPvppvDwk1gU=",
         "owner": "getmissionctrl",
         "repo": "natskell",
-        "rev": "3f53e0a023015f8e9e6b0f7e6db9e668cec1a3b8",
+        "rev": "4545e2749896b1aad9674ae1e30a7f39286c76fa",
         "type": "github"
       },
       "original": {
         "owner": "getmissionctrl",
+        "ref": "fix/msg-payload-framing",
         "repo": "natskell",
         "type": "github"
       }
