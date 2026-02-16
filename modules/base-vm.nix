@@ -54,7 +54,7 @@
     enable = true;
     package = self.packages.${pkgs.system}.default;
     httpPort = 8080;
-    logLevel = "info";
+    logLevel = lib.mkDefault "info";
   };
 
   # DHCP networking
