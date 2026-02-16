@@ -7,7 +7,8 @@
 -- 3. Runs HTTP server for health checks and metrics
 module Main where
 
-import Control.Concurrent.Async (race_)
+import Control.Concurrent (threadDelay)
+import Control.Concurrent.Async (race, race_)
 import Control.Concurrent.MVar (newEmptyMVar, takeMVar)
 import Control.Exception (bracket)
 import Control.Monad (forM_)
@@ -19,7 +20,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.IO as TIO
-import Data.Time (getCurrentTime)
+import Data.Time (UTCTime, getCurrentTime)
 import Katip (Severity(..), LogStr, LogEnv, logStr)
 import Options.Applicative hiding (command)
 import Prelude hiding (id)
@@ -41,7 +42,7 @@ import Scape.Agent.Logging
   )
 import Scape.Agent.MMDS (fetchMMDSConfig, MMDSConfig (..), NatsConfig (..))
 import Scape.Agent.Nats
-  ( NatsAgentConfig (NatsAgentConfig)
+  ( NatsAgentConfig (..)
   , runNatsAgent
   , ObservationPublisher
   , publishOutputBytes
@@ -197,15 +198,12 @@ main = do
 
     logInfoIO logEnv (Namespace ["main"]) $ logT $ "HTTP port: " <> showT (optPort options)
 
-    -- Create shutdown signal
-    shutdownVar <- newEmptyMVar
-
     -- Run NATS agent and HTTP server concurrently
     case mNatsConfig of
       Just natsCfg -> do
         logInfoIO logEnv (Namespace ["main"]) $ logT "Starting NATS agent"
         race_
-          (runNatsAgent natsCfg agentVersion startTime (optPort options) (handleCommand logEnv) (takeMVar shutdownVar))
+          (natsWithReconnect logEnv options natsCfg agentVersion startTime)
           (runServer env startTime serverConfig)
       Nothing -> do
         -- No NATS config - just run HTTP server
@@ -226,6 +224,39 @@ mmdsToNatsConfig mmds =
        Nothing                 -- credsFile (for local testing only)
        nc.credsFileContent     -- credsFileContent (raw .creds from MMDS)
        nc.announceSubject      -- announceSubject (for template builds)
+
+-- | Run NATS agent with MMDS-aware reconnection after snapshot resume
+--
+-- On snapshot resume, the MMDS instanceId changes. This function polls MMDS
+-- every second and races against the running NATS agent. When the instanceId
+-- changes, the old NATS connection is torn down and a new one is established
+-- with the updated config.
+natsWithReconnect :: LogEnv -> Options -> NatsAgentConfig -> Text -> UTCTime -> IO ()
+natsWithReconnect logEnv options cfg version startTime = go cfg
+  where
+    go currentCfg = do
+      shutdownVar <- newEmptyMVar
+      result <- race
+        (runNatsAgent currentCfg version startTime (optPort options)
+           (handleCommand logEnv) (takeMVar shutdownVar))
+        (watchMMDS logEnv currentCfg.instanceId)
+      case result of
+        Left ()      -> pure ()  -- Normal shutdown
+        Right newCfg -> do
+          logInfoIO logEnv (Namespace ["nats"]) $
+            logT $ "MMDS config changed (" <> currentCfg.instanceId
+                <> " -> " <> newCfg.instanceId <> "), reconnecting NATS..."
+          go newCfg
+
+-- | Poll MMDS until instanceId changes (snapshot resume detection)
+watchMMDS :: LogEnv -> Text -> IO NatsAgentConfig
+watchMMDS logEnv currentInstanceId = do
+  threadDelay 1000000  -- 1 second
+  mmdsResult <- fetchMMDSConfig logEnv 2000
+  case mmdsResult of
+    Just mmds | mmds.instanceId /= currentInstanceId ->
+      pure (mmdsToNatsConfig mmds)
+    _ -> watchMMDS logEnv currentInstanceId
 
 -- | Create test config for CLI override
 testNatsConfig :: Text -> Text -> Maybe FilePath -> NatsAgentConfig
