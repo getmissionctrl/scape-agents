@@ -26,6 +26,11 @@
     };
   };
 
+  # Root SSH key for interactive debugging
+  users.users.root.openssh.authorizedKeys.keys = [
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJI4iaVjJcoj4La4dcWYDRyjlyDADrL3kbZ9Eux6I6s2 ben@scape"
+  ];
+
   # Template metadata
   scape.template.debug = {
     resources.memory = 256;
