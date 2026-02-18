@@ -78,6 +78,11 @@
     };
   };
 
+  # Prometheus node exporter for host-level metrics scraping
+  services.prometheus.exporters.node = {
+    enable = true;
+  };
+
   # System basics
   system.stateVersion = "24.05";
 
