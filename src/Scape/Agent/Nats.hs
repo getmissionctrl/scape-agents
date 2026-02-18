@@ -35,6 +35,7 @@ module Scape.Agent.Nats
   , ReannounceCallback
   ) where
 
+import Control.Concurrent (forkIO)
 import Control.Exception (SomeException, bracket, catch)
 import Control.Monad (void)
 import Data.Aeson (ToJSON(..), FromJSON(..), object, (.=), (.:), withObject)
@@ -76,6 +77,8 @@ import Scape.Protocol.Observation
   , IPv4
   )
 import qualified Scape.Protocol.MMDS as MMDS
+import Scape.Agent.Metrics (metricsLoop)
+import Scape.Agent.State (AgentState)
 
 -- | Agent-side NATS configuration
 data NatsAgentConfig = NatsAgentConfig
@@ -180,10 +183,11 @@ runNatsAgent
   -> Text           -- ^ Agent version
   -> UTCTime        -- ^ Start time
   -> Int            -- ^ HTTP port for health checks
+  -> AgentState     -- ^ Shared agent state (for metrics loop)
   -> CommandHandler -- ^ Command handler callback
   -> IO ()          -- ^ Shutdown signal (e.g., wait on MVar)
   -> IO ()
-runNatsAgent cfg version startTime httpPort handleCmd waitShutdown =
+runNatsAgent cfg version startTime httpPort agentState handleCmd waitShutdown =
   bracket (connectAgent cfg) (disconnectNats . fst) $ \(conn, publish) -> do
     -- Discover IP address first (needed for Ready observation)
     ip <- discoverIpAddress
@@ -206,6 +210,9 @@ runNatsAgent cfg version startTime httpPort handleCmd waitShutdown =
         putStrLn $ "[Agent] Publishing announcement to " ++ T.unpack subject
         publishReadyAnnouncement conn subject cfg.instanceId ipText httpPort
         putStrLn "[Agent] Announcement published"
+
+    -- Start background metrics loop
+    void $ forkIO $ metricsLoop agentState (publishMetrics publish)
 
     -- Subscribe to command subject
     void $ subscribeJson conn cfg.cmdSubject $ \result ->

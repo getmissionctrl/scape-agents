@@ -88,10 +88,16 @@ spec = describe "Protocol.Observation" $ do
   describe "MetricsEvent" $ do
     it "round-trips through JSON" $ do
       let evt = MetricsEvent
-            { commandsTotal = 100
+            { cpuPercent = 45.5
+            , memUsedKb = 524288
+            , memTotalKb = 1048576
+            , netRxBytes = 123456
+            , netTxBytes = 654321
+            , diskUsedKb = 2000000
+            , diskTotalKb = 4000000
+            , commandsTotal = 100
             , commandsActive = 3
-            , memoryUsedKb = 524288
-            , cpuPercent = 45.5
+            , errorsTotal = 2
             }
       decode (encode evt) `shouldBe` Just evt
 
@@ -133,10 +139,16 @@ spec = describe "Protocol.Observation" $ do
 
     it "round-trips ObsMetrics" $ do
       let obs = ObsMetrics MetricsEvent
-            { commandsTotal = 50
+            { cpuPercent = 12.3
+            , memUsedKb = 262144
+            , memTotalKb = 524288
+            , netRxBytes = 10000
+            , netTxBytes = 20000
+            , diskUsedKb = 1000000
+            , diskTotalKb = 2000000
+            , commandsTotal = 50
             , commandsActive = 1
-            , memoryUsedKb = 262144
-            , cpuPercent = 12.3
+            , errorsTotal = 0
             }
       decode (encode obs) `shouldBe` Just obs
 

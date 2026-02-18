@@ -20,6 +20,7 @@ module Scape.Agent.State
 
 import Control.Concurrent.STM
 import Data.ByteString (ByteString)
+import Data.Int (Int64)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Text (Text)
@@ -63,6 +64,13 @@ data AgentMetrics = AgentMetrics
   , errorsTotal    :: !Int
   , wsConns        :: !Int
   , sseConns       :: !Int
+  , cpuPercent     :: !Double
+  , memUsedKb      :: !Int
+  , memTotalKb     :: !Int
+  , netRxBytes     :: !Int64
+  , netTxBytes     :: !Int64
+  , diskUsedKb     :: !Int
+  , diskTotalKb    :: !Int
   }
   deriving stock (Generic)
 
@@ -80,7 +88,7 @@ initAgentState = AgentState
   <$> newTVarIO Map.empty
   <*> newTVarIO Map.empty
   <*> newTVarIO Map.empty
-  <*> newTVarIO (AgentMetrics 0 0 0 0 0 0)
+  <*> newTVarIO (AgentMetrics 0 0 0 0 0 0 0.0 0 0 0 0 0 0)
   <*> newTQueueIO
 
 -- | Inject a secret into session scope

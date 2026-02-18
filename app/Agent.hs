@@ -38,6 +38,7 @@ import Scape.Agent.Logging
   , logInfoIO
   , logWarnIO
   , aeLogEnv
+  , aeState
   , Namespace(..)
   )
 import Scape.Agent.MMDS (fetchMMDSConfig, MMDSConfig (..), NatsConfig (..))
@@ -58,6 +59,7 @@ import Scape.Protocol.Observation
   )
 import qualified Scape.Protocol.Control as Ctrl
 import Scape.Agent.Server (runServer, ServerConfig(..), defaultServerConfig)
+import Scape.Agent.State (AgentState)
 import Scape.Protocol.Command
   ( Command(..)
   , ExecRequest(..)
@@ -203,7 +205,7 @@ main = do
       Just natsCfg -> do
         logInfoIO logEnv (Namespace ["main"]) $ logT "Starting NATS agent"
         race_
-          (natsWithReconnect logEnv options natsCfg agentVersion startTime)
+          (natsWithReconnect logEnv options natsCfg agentVersion startTime (aeState env))
           (runServer env startTime serverConfig)
       Nothing -> do
         -- No NATS config - just run HTTP server
@@ -231,14 +233,14 @@ mmdsToNatsConfig mmds =
 -- every second and races against the running NATS agent. When the instanceId
 -- changes, the old NATS connection is torn down and a new one is established
 -- with the updated config.
-natsWithReconnect :: LogEnv -> Options -> NatsAgentConfig -> Text -> UTCTime -> IO ()
-natsWithReconnect logEnv options cfg version startTime = go cfg
+natsWithReconnect :: LogEnv -> Options -> NatsAgentConfig -> Text -> UTCTime -> AgentState -> IO ()
+natsWithReconnect logEnv options cfg version startTime agentState = go cfg
   where
     go currentCfg = do
       shutdownVar <- newEmptyMVar
       result <- race
         (runNatsAgent currentCfg version startTime (optPort options)
-           (handleCommand logEnv) (takeMVar shutdownVar))
+           agentState (handleCommand logEnv) (takeMVar shutdownVar))
         (watchMMDS logEnv currentCfg.instanceId)
       case result of
         Left ()      -> pure ()  -- Normal shutdown
