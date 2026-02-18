@@ -31,11 +31,25 @@
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJI4iaVjJcoj4La4dcWYDRyjlyDADrL3kbZ9Eux6I6s2 ben@scape"
   ];
 
+  # Simple demo HTTP server
+  systemd.services.demo-web = {
+    description = "Demo HTTP server";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "network-online.target" ];
+    serviceConfig = {
+      ExecStart = "${pkgs.python3}/bin/python3 -m http.server 9090 --directory /tmp";
+      Restart = "always";
+    };
+  };
+
   # Template metadata
   scape.template.debug = {
     resources.memory = 256;
     resources.cpu = 100;
     resources.disk = 1024;
     egress = "deny-all";
+    services = [
+      { name = "web"; port = 9090; path = "/"; type = "http"; }
+    ];
   };
 }

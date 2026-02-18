@@ -112,6 +112,19 @@ let
         description = "Secret names to inject into the template at /run/secrets";
         example = [ "api-key" "database-password" ];
       };
+
+      services = mkOption {
+        type = types.listOf (types.submodule {
+          options = {
+            name = mkOption { type = types.str; description = "Service name"; };
+            port = mkOption { type = types.port; description = "Port inside the VM"; };
+            path = mkOption { type = types.str; default = "/"; description = "URL path prefix"; };
+            type = mkOption { type = types.enum [ "http" "websocket" ]; default = "http"; };
+          };
+        });
+        default = [];
+        description = "HTTP/WebSocket services exposed by this template";
+      };
     };
   };
 
