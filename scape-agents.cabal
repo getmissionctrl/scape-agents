@@ -34,6 +34,7 @@ library
     Scape.Agent.Vsock
     Scape.Agent.State
     Scape.Agent.Metrics
+    Scape.Agent.System
     Scape.Agent.Stream.WebSocket
     Scape.Agent.Stream.SSE
 
