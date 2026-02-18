@@ -270,14 +270,8 @@ publishError publish mCmdId message =
     }
 
 -- | Publish Metrics observation
-publishMetrics :: ObservationPublisher -> Int -> Int -> Int -> Double -> IO ()
-publishMetrics publish cmdTotal cmdActive memKb cpuPct =
-  publish $ ObsMetrics MetricsEvent
-    { commandsTotal = cmdTotal
-    , commandsActive = cmdActive
-    , memoryUsedKb = memKb
-    , cpuPercent = cpuPct
-    }
+publishMetrics :: ObservationPublisher -> MetricsEvent -> IO ()
+publishMetrics publish event = publish $ ObsMetrics event
 
 -- | Publish ShuttingDown observation
 publishShuttingDown :: ObservationPublisher -> IO ()

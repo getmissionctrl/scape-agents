@@ -26,6 +26,7 @@ module Scape.Protocol.Observation
   ) where
 
 import Data.Aeson (FromJSON, ToJSON)
+import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Time (UTCTime)
 import GHC.Generics (Generic)
@@ -90,10 +91,16 @@ data ErrorEvent = ErrorEvent
 
 -- | Periodic metrics from agent
 data MetricsEvent = MetricsEvent
-  { commandsTotal  :: !Int
+  { cpuPercent     :: !Double
+  , memUsedKb      :: !Int
+  , memTotalKb     :: !Int
+  , netRxBytes     :: !Int64
+  , netTxBytes     :: !Int64
+  , diskUsedKb     :: !Int
+  , diskTotalKb    :: !Int
+  , commandsTotal  :: !Int
   , commandsActive :: !Int
-  , memoryUsedKb   :: !Int
-  , cpuPercent     :: !Double
+  , errorsTotal    :: !Int
   }
   deriving stock (Generic, Show, Eq)
   deriving anyclass (FromJSON, ToJSON)
