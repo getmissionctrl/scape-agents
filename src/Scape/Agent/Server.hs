@@ -102,6 +102,34 @@ metricsHandler = do
     , "# HELP scape_agent_sse_connections Active SSE connections"
     , "# TYPE scape_agent_sse_connections gauge"
     , "scape_agent_sse_connections " <> T.pack (show $ m ^. #sseConns)
+    , ""
+    , "# HELP scape_agent_cpu_percent CPU usage percentage"
+    , "# TYPE scape_agent_cpu_percent gauge"
+    , "scape_agent_cpu_percent " <> T.pack (show $ m ^. #cpuPercent)
+    , ""
+    , "# HELP scape_agent_memory_used_kb Memory used in KB"
+    , "# TYPE scape_agent_memory_used_kb gauge"
+    , "scape_agent_memory_used_kb " <> T.pack (show $ m ^. #memUsedKb)
+    , ""
+    , "# HELP scape_agent_memory_total_kb Total memory in KB"
+    , "# TYPE scape_agent_memory_total_kb gauge"
+    , "scape_agent_memory_total_kb " <> T.pack (show $ m ^. #memTotalKb)
+    , ""
+    , "# HELP scape_agent_net_rx_bytes Network bytes received"
+    , "# TYPE scape_agent_net_rx_bytes counter"
+    , "scape_agent_net_rx_bytes " <> T.pack (show $ m ^. #netRxBytes)
+    , ""
+    , "# HELP scape_agent_net_tx_bytes Network bytes transmitted"
+    , "# TYPE scape_agent_net_tx_bytes counter"
+    , "scape_agent_net_tx_bytes " <> T.pack (show $ m ^. #netTxBytes)
+    , ""
+    , "# HELP scape_agent_disk_used_kb Disk used in KB"
+    , "# TYPE scape_agent_disk_used_kb gauge"
+    , "scape_agent_disk_used_kb " <> T.pack (show $ m ^. #diskUsedKb)
+    , ""
+    , "# HELP scape_agent_disk_total_kb Total disk in KB"
+    , "# TYPE scape_agent_disk_total_kb gauge"
+    , "scape_agent_disk_total_kb " <> T.pack (show $ m ^. #diskTotalKb)
     ]
 
 -- | WebSocket endpoint handler

@@ -157,10 +157,12 @@ executeCommandAsync state cmdId cmd args env workdir timeoutSec tkn = void $ for
       -- Process creation failed (e.g., command not found)
       endTime <- getCurrentTime
       let dur = realToFrac $ diffUTCTime endTime startTime
-      atomically $ writeTQueue (eventQueue state) $
-        CECommandError cmdId ("Failed to start process: " <> T.pack (show e))
-      atomically $ writeTQueue (eventQueue state) $
-        CECommandComplete cmdId (-1) dur
+      atomically $ do
+        writeTQueue (eventQueue state) $
+          CECommandError cmdId ("Failed to start process: " <> T.pack (show e))
+        writeTQueue (eventQueue state) $
+          CECommandComplete cmdId (-1) dur
+        modifyTVar' (metrics state) $ \m -> m & #errorsTotal %~ (+ 1)
       return ()
 
     Right (Just hin, Just hout, Just herr, ph) -> do
@@ -227,10 +229,12 @@ executeCommandAsync state cmdId cmd args env workdir timeoutSec tkn = void $ for
       -- Unexpected pipe configuration
       endTime <- getCurrentTime
       let dur = realToFrac $ diffUTCTime endTime startTime
-      atomically $ writeTQueue (eventQueue state) $
-        CECommandError cmdId "Unexpected process pipe configuration"
-      atomically $ writeTQueue (eventQueue state) $
-        CECommandComplete cmdId (-1) dur
+      atomically $ do
+        writeTQueue (eventQueue state) $
+          CECommandError cmdId "Unexpected process pipe configuration"
+        writeTQueue (eventQueue state) $
+          CECommandComplete cmdId (-1) dur
+        modifyTVar' (metrics state) $ \m -> m & #errorsTotal %~ (+ 1)
 
 -- | Forward stdin from channel to handle
 stdinForwarder :: TChan ByteString -> Handle -> IO ()
