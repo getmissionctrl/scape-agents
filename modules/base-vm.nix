@@ -26,8 +26,8 @@
     hypervisor = "firecracker";
 
     # Minimal resources (templates can override)
-    mem = 256;  # 256MB RAM
-    vcpu = 1;   # 1 vCPU
+    mem = lib.mkDefault 256;  # 256MB RAM
+    vcpu = lib.mkDefault 1;   # 1 vCPU
 
     # Fast disk compression for quick builds
     storeDiskErofsFlags = [ "-zlz4" ];
@@ -44,18 +44,13 @@
       cid = 3;  # Guest CID (host is always 2)
     };
 
-    # 9p share for operator persistent home directory
-    # Host directory provisioned by orchestrator at instance creation
-    shares = [{
-      proto = "9p";
-      tag = "home";
-      source = "/var/lib/firecracker/placeholder";  # overridden by orchestrator
+    # Persistent volume for operator home directory
+    # Orchestrator provisions the backing image at instance creation
+    volumes = [{
+      image = "/var/lib/microvms/placeholder/operator-home.img";  # overridden by orchestrator
       mountPoint = "/home/operator";
-      securityModel = "mapped-xattr";
+      size = 512;  # 512 MB
     }];
-
-    # No persistent volumes - ephemeral sandbox
-    volumes = [];
   };
 
   # Enable scape-agent

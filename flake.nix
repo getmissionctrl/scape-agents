@@ -13,9 +13,14 @@
       url = "github:microvm-nix/microvm.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    llm-agents = {
+      url = "github:numtide/llm-agents.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, natskell, microvm, ... }:
+  outputs = { self, nixpkgs, natskell, microvm, llm-agents, ... }:
     let
       system = "x86_64-linux";
       pkgs = import nixpkgs { inherit system; };
@@ -39,7 +44,7 @@
       # Build a template as a NixOS microVM configuration
       mkTemplate = name: nixpkgs.lib.nixosSystem {
         inherit system;
-        specialArgs = { inherit self; };
+        specialArgs = { inherit self llm-agents; };
         modules = [
           microvm.nixosModules.microvm
           ./templates/${name}/default.nix
@@ -65,6 +70,8 @@
         debug = mkTemplate "debug";
         python-sandbox = mkTemplate "python-sandbox";
         duckdb-analyst = mkTemplate "duckdb-analyst";
+        claude-code = mkTemplate "claude-code";
+        openclaw = mkTemplate "openclaw";
       };
 
       packages.${system} = {
@@ -75,6 +82,8 @@
         debug = self.nixosConfigurations.debug.config.microvm.declaredRunner;
         python-sandbox = self.nixosConfigurations.python-sandbox.config.microvm.declaredRunner;
         duckdb-analyst = self.nixosConfigurations.duckdb-analyst.config.microvm.declaredRunner;
+        claude-code = self.nixosConfigurations.claude-code.config.microvm.declaredRunner;
+        openclaw = self.nixosConfigurations.openclaw.config.microvm.declaredRunner;
       };
 
       # Template flake outputs for `nix flake init`
@@ -90,6 +99,14 @@
         debug = {
           path = ./templates/debug;
           description = "Debug template with SSH and verbose logging";
+        };
+        claude-code = {
+          path = ./templates/claude-code;
+          description = "Claude Code terminal-based AI agent";
+        };
+        openclaw = {
+          path = ./templates/openclaw;
+          description = "OpenClaw AI assistant with gateway web service";
         };
       };
 
