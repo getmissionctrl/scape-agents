@@ -88,8 +88,8 @@ in
         # Note: PrivateTmp disabled so file transfers to /tmp are accessible
         NoNewPrivileges = true;
         ProtectSystem = "strict";
-        ProtectHome = true;
-        ReadWritePaths = [ "/tmp" ];  # /run/scape is handled by RuntimeDirectory
+        ProtectHome = false;
+        ReadWritePaths = [ "/tmp" "/home/operator" ];  # /run/scape is handled by RuntimeDirectory
       };
     };
 

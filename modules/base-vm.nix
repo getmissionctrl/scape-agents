@@ -44,6 +44,16 @@
       cid = 3;  # Guest CID (host is always 2)
     };
 
+    # 9p share for operator persistent home directory
+    # Host directory provisioned by orchestrator at instance creation
+    shares = [{
+      proto = "9p";
+      tag = "home";
+      source = "/var/lib/firecracker/placeholder";  # overridden by orchestrator
+      mountPoint = "/home/operator";
+      securityModel = "mapped-xattr";
+    }];
+
     # No persistent volumes - ephemeral sandbox
     volumes = [];
   };
@@ -86,6 +96,17 @@
   # System basics
   system.stateVersion = "24.05";
 
+  # Unprivileged operator user for running all user workloads
+  users.users.operator = {
+    isNormalUser = true;
+    uid = 1000;
+    group = "operator";
+    home = "/home/operator";
+    shell = "${pkgs.bash}/bin/bash";
+  };
+
+  users.groups.operator.gid = 1000;
+
   # Minimal userland for command execution
   environment.systemPackages = with pkgs; [
     busybox
@@ -94,6 +115,13 @@
     curl
     jq
     iproute2
+    tmux
+  ];
+
+  # Enable systemd lingering for operator so user services persist
+  systemd.tmpfiles.rules = [
+    "d /var/lib/systemd/linger 0755 root root -"
+    "f /var/lib/systemd/linger/operator 0644 root root -"
   ];
 
   # Fast boot
