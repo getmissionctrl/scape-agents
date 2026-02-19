@@ -14,6 +14,8 @@ module Scape.Agent.Executor
   , OutputCallback
     -- * PTY/Interactive execution
   , executeCommandPty
+    -- * User isolation
+  , wrapAsOperator
     -- * Utilities
   , decodeBase64
   , encodeBase64
@@ -37,6 +39,7 @@ import GHC.Generics (Generic)
 import Optics.Core ((%~), (&))
 import System.Exit (ExitCode(..))
 import System.IO (Handle, hClose, hSetBinaryMode)
+import System.Posix.User (getEffectiveUserID)
 import System.Process
 import qualified System.Timeout as Timeout
 
@@ -55,6 +58,16 @@ data CommandResult = CommandResult
   }
   deriving stock (Show, Generic)
 
+-- | Wrap a command to run as the operator user via runuser.
+-- Only wraps when running as root (uid 0). In non-root contexts
+-- (e.g., tests), runs the command directly.
+wrapAsOperator :: Text -> [Text] -> IO (Text, [Text])
+wrapAsOperator cmd args = do
+  uid <- getEffectiveUserID
+  if uid == 0
+    then pure ("runuser", ["-u", "operator", "--", cmd] ++ args)
+    else pure (cmd, args)
+
 -- | Execute a command synchronously (blocks until completion)
 executeCommandSync
   :: AgentState
@@ -69,7 +82,8 @@ executeCommandSync
 executeCommandSync _state _cmdId cmd args env workdir mstdin timeoutSec = do
   startTime <- getCurrentTime
 
-  let procSpec = (proc (T.unpack cmd) (map T.unpack args))
+  (wrappedCmd, wrappedArgs) <- wrapAsOperator cmd args
+  let procSpec = (proc (T.unpack wrappedCmd) (map T.unpack wrappedArgs))
         { cwd = Just workdir
         , env = Just $ map (\(k, v) -> (T.unpack k, T.unpack v)) env
         , std_in = maybe NoStream (const CreatePipe) mstdin
@@ -137,12 +151,13 @@ executeCommandAsync
 executeCommandAsync state cmdId cmd args env workdir timeoutSec tkn = void $ forkIO $ do
   startTime <- getCurrentTime
 
+  (wrappedCmd, wrappedArgs) <- wrapAsOperator cmd args
   -- Use Nothing for env when empty to inherit parent environment (includes PATH)
   -- Otherwise set explicit environment variables
   let envSetting = if null env
                    then Nothing
                    else Just $ map (\(k, v) -> (T.unpack k, T.unpack v)) env
-      procSpec = (proc (T.unpack cmd) (map T.unpack args))
+      procSpec = (proc (T.unpack wrappedCmd) (map T.unpack wrappedArgs))
         { cwd = Just workdir
         , env = envSetting
         , std_in = CreatePipe
@@ -307,11 +322,12 @@ executeCommandWithCallback
 executeCommandWithCallback _cmdId cmd args env workdir mStdin timeoutSec onOutput onComplete onError = void $ forkIO $ do
   startTime <- getCurrentTime
 
+  (wrappedCmd, wrappedArgs) <- wrapAsOperator cmd args
   -- Use Nothing for env when empty to inherit parent environment (includes PATH)
   let envSetting = if null env
                    then Nothing
                    else Just $ map (\(k, v) -> (T.unpack k, T.unpack v)) env
-      procSpec = (proc (T.unpack cmd) (map T.unpack args))
+      procSpec = (proc (T.unpack wrappedCmd) (map T.unpack wrappedArgs))
         { cwd = Just workdir
         , env = envSetting
         , std_in = CreatePipe

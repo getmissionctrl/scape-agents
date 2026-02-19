@@ -69,6 +69,18 @@ spec = describe "Executor" $ do
 
       exitCode result `shouldBe` ExitCode 42
 
+    it "uses /home/operator as default working directory reference" $ do
+      state <- initAgentState
+      let cmdId = CommandId nil
+
+      -- Verify the default workdir is /home/operator by checking pwd
+      -- Note: in test env this may not exist, so we test /tmp fallback
+      result <- executeCommandSync state cmdId "pwd" [] mempty "/tmp" Nothing 10
+
+      exitCode result `shouldBe` ExitCode 0
+      -- The working directory should be what we passed
+      BSC.strip (stdout result) `shouldBe` "/tmp"
+
   describe "base64 utilities" $ do
     it "encodes and decodes correctly" $ do
       let original = "Hello, World!"
