@@ -50,5 +50,8 @@ type AgentAPI =
        :> ReqBody '[JSON] OpenAIChatRequest
        :> StreamPost NewlineFraming JSON (SourceT IO OpenAIStreamChunk)
 
+       -- Interactive terminal (PTY over WebSocket)
+  :<|> "ws" :> "terminal" :> WebSocket
+
 agentAPI :: Proxy AgentAPI
 agentAPI = Proxy

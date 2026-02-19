@@ -37,6 +37,7 @@ library
     Scape.Agent.System
     Scape.Agent.Stream.WebSocket
     Scape.Agent.Stream.SSE
+    Scape.Agent.Terminal
 
   build-depends:
       base >= 4.17 && < 5
@@ -59,6 +60,7 @@ library
     , network
     , network-info
     , optics-core
+    , posix-pty
     , process
     , servant >= 0.20
     , servant-server
@@ -160,6 +162,7 @@ test-suite scape-agents-test
     , katip
     , natskell
     , network
+    , posix-pty
     , process
     , QuickCheck
     , stm

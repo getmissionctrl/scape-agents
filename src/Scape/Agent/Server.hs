@@ -24,6 +24,7 @@ import Scape.Agent.Logging
 import Scape.Agent.State
 import Scape.Agent.Stream.WebSocket (wsHandler)
 import Scape.Agent.Stream.SSE (sseHandler, openAIHandler)
+import Scape.Agent.Terminal (terminalHandler)
 import Scape.Protocol.Types (CommandId, Token)
 import Scape.Protocol.AISDK (ChatRequest, ChatEvent, OpenAIChatRequest, OpenAIStreamChunk)
 
@@ -59,6 +60,7 @@ server startTime config =
   :<|> wsEndpoint
   :<|> sseEndpoint
   :<|> openAIEndpoint
+  :<|> terminalEndpoint
 
 -- | Health check endpoint
 healthHandler :: UTCTime -> ServerConfig -> AppM HealthStatus
@@ -155,6 +157,12 @@ openAIEndpoint mToken req = do
   $(logTM) InfoS "OpenAI API request"
   result <- liftIO $ openAIHandler state mToken req
   either throwAppError pure result
+
+-- | Terminal WebSocket endpoint (PTY over WebSocket)
+terminalEndpoint :: WS.Connection -> AppM ()
+terminalEndpoint conn = do
+  $(logTM) InfoS "Terminal WebSocket connection"
+  liftIO $ terminalHandler conn
 
 -- | Throw a ServerError in AppM (via IO exception)
 -- Since AppM is ReaderT over IO, we throw ServerError as an exception
