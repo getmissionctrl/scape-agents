@@ -141,6 +141,7 @@ test-suite scape-agents-test
     Agent.StateSpec
     Agent.ExecutorSpec
     Agent.NatsSpec
+    Agent.TerminalSpec
     Protocol.CommandSpec
     Protocol.ObservationSpec
     Protocol.MMDSSpec
@@ -169,3 +170,4 @@ test-suite scape-agents-test
     , text
     , time
     , uuid
+    , websockets

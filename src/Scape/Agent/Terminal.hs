@@ -30,7 +30,7 @@ data ResizeMessage = ResizeMessage
   , rmCols :: !Int
   , rmRows :: !Int
   }
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 instance FromJSON ResizeMessage where
   parseJSON = withObject "ResizeMessage" $ \o -> do
