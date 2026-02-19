@@ -15,13 +15,13 @@
   ];
 
   # More resources for AI workloads
-  microvm.mem = 2048;
-  microvm.vcpu = 2;
+  microvm.mem = 16384;
+  microvm.vcpu = 4;
 
   # Template metadata
   scape.template.claude-code = {
-    resources.memory = 2048;
-    resources.cpu = 200;
+    resources.memory = 16384;
+    resources.cpu = 400;
     egress = "llm-providers";
   };
 }
