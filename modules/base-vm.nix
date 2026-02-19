@@ -44,13 +44,10 @@
       cid = 3;  # Guest CID (host is always 2)
     };
 
-    # Persistent volume for operator home directory
-    # Orchestrator provisions the backing image at instance creation
-    volumes = [{
-      image = "/var/lib/microvms/placeholder/operator-home.img";  # overridden by orchestrator
-      mountPoint = "/home/operator";
-      size = 512;  # 512 MB
-    }];
+    # No persistent volumes - ephemeral sandbox
+    # Persistent home for operator will be added when orchestrator
+    # supports provisioning and injecting volume images at spawn time
+    volumes = [];
   };
 
   # Enable scape-agent
