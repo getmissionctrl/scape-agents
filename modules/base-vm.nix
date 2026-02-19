@@ -108,6 +108,7 @@
     jq
     iproute2
     tmux
+    util-linux
   ];
 
   # Enable systemd lingering for operator so user services persist

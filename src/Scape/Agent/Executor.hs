@@ -16,6 +16,7 @@ module Scape.Agent.Executor
   , executeCommandPty
     -- * User isolation
   , wrapAsOperator
+  , wrapForOperator
     -- * Utilities
   , decodeBase64
   , encodeBase64
@@ -35,6 +36,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import Data.Time (getCurrentTime, diffUTCTime)
+import Data.Word (Word32)
 import GHC.Generics (Generic)
 import Optics.Core ((%~), (&))
 import System.Exit (ExitCode(..))
@@ -58,15 +60,20 @@ data CommandResult = CommandResult
   }
   deriving stock (Show, Generic)
 
+-- | Pure logic: wrap a command for operator execution.
+-- Given a UID, determines whether to wrap with runuser.
+wrapForOperator :: Word32 -> Text -> [Text] -> (Text, [Text])
+wrapForOperator uid cmd args
+  | uid == 0  = ("runuser", ["-u", "operator", "--", cmd] ++ args)
+  | otherwise = (cmd, args)
+
 -- | Wrap a command to run as the operator user via runuser.
 -- Only wraps when running as root (uid 0). In non-root contexts
 -- (e.g., tests), runs the command directly.
 wrapAsOperator :: Text -> [Text] -> IO (Text, [Text])
 wrapAsOperator cmd args = do
   uid <- getEffectiveUserID
-  if uid == 0
-    then pure ("runuser", ["-u", "operator", "--", cmd] ++ args)
-    else pure (cmd, args)
+  pure $ wrapForOperator (fromIntegral uid) cmd args
 
 -- | Execute a command synchronously (blocks until completion)
 executeCommandSync

@@ -95,3 +95,24 @@ spec = describe "Executor" $ do
           decoded = decodeBase64 encoded
 
       decoded `shouldBe` Right original
+
+  describe "wrapForOperator" $ do
+    it "wraps command with runuser when uid is 0 (root)" $ do
+      let (cmd, args) = wrapForOperator 0 "echo" ["hello"]
+      cmd `shouldBe` "runuser"
+      args `shouldBe` ["-u", "operator", "--", "echo", "hello"]
+
+    it "passes command through unchanged when non-root" $ do
+      let (cmd, args) = wrapForOperator 1000 "echo" ["hello"]
+      cmd `shouldBe` "echo"
+      args `shouldBe` ["hello"]
+
+    it "preserves all arguments when wrapping" $ do
+      let (cmd, args) = wrapForOperator 0 "sh" ["-c", "echo $HOME", "--verbose"]
+      cmd `shouldBe` "runuser"
+      args `shouldBe` ["-u", "operator", "--", "sh", "-c", "echo $HOME", "--verbose"]
+
+    it "handles empty arguments when wrapping" $ do
+      let (cmd, args) = wrapForOperator 0 "bash" []
+      cmd `shouldBe` "runuser"
+      args `shouldBe` ["-u", "operator", "--", "bash"]

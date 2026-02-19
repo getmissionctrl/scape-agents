@@ -8,6 +8,7 @@
 --   Agent -> Client: raw PTY output bytes
 module Scape.Agent.Terminal
   ( terminalHandler
+  , terminalShellCmd
   , ResizeMessage (..)
   ) where
 
@@ -18,6 +19,7 @@ import Data.Aeson (FromJSON(..), withObject, (.:))
 import qualified Data.Aeson as Aeson
 import Data.ByteString (ByteString)
 import qualified Data.Text as T
+import Data.Word (Word32)
 import GHC.Generics (Generic)
 import qualified Network.WebSockets as WS
 import System.Posix.Pty (Pty, spawnWithPty, readPty, writePty, resizePty)
@@ -39,6 +41,14 @@ instance FromJSON ResizeMessage where
     r <- o .: "rows"
     pure ResizeMessage { rmType = t, rmCols = c, rmRows = r }
 
+-- | Determine the shell command and args based on effective UID.
+-- When root (uid 0), runs bash via runuser as operator.
+-- Otherwise, runs bash directly.
+terminalShellCmd :: Word32 -> (String, [String])
+terminalShellCmd uid
+  | uid == 0  = ("runuser", ["-u", "operator", "--", "bash", "-l"])
+  | otherwise = ("bash", ["-l"])
+
 -- | Handle a terminal WebSocket connection
 --
 -- Spawns a PTY with a login shell as operator, bridges WS <-> PTY.
@@ -46,9 +56,7 @@ terminalHandler :: WS.Connection -> IO ()
 terminalHandler conn = do
   -- Determine shell command based on whether we're root
   uid <- getEffectiveUserID
-  let (shellCmd, shellArgs) = if uid == 0
-        then ("/usr/bin/env", ["runuser", "-u", "operator", "--", "/bin/bash", "-l"])
-        else ("/bin/bash", ["-l"])
+  let (shellCmd, shellArgs) = terminalShellCmd (fromIntegral uid)
 
   -- Spawn PTY with initial size 80x24
   (pty, ph) <- spawnWithPty

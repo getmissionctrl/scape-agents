@@ -6,7 +6,7 @@ import Test.Hspec
 import Data.Aeson (decode)
 import qualified Data.ByteString.Lazy as LBS
 
-import Scape.Agent.Terminal (ResizeMessage(..))
+import Scape.Agent.Terminal (ResizeMessage(..), terminalShellCmd)
 
 spec :: Spec
 spec = describe "Terminal" $ do
@@ -30,3 +30,18 @@ spec = describe "Terminal" $ do
       let raw = "ls -la\r\n"
       let result = decode (LBS.fromStrict raw) :: Maybe ResizeMessage
       result `shouldBe` Nothing
+
+  describe "terminalShellCmd" $ do
+    it "uses runuser as root" $ do
+      let (cmd, args) = terminalShellCmd 0
+      cmd `shouldBe` "runuser"
+      args `shouldBe` ["-u", "operator", "--", "bash", "-l"]
+
+    it "does not use /usr/bin/env" $ do
+      let (cmd, _) = terminalShellCmd 0
+      cmd `shouldNotBe` "/usr/bin/env"
+
+    it "uses bash directly as non-root" $ do
+      let (cmd, args) = terminalShellCmd 1000
+      cmd `shouldBe` "bash"
+      args `shouldBe` ["-l"]

@@ -64,6 +64,8 @@ in
       wantedBy = [ "multi-user.target" ];
       after = [ "network.target" ];
 
+      path = with pkgs; [ util-linux coreutils bash ];
+
       serviceConfig = {
         Type = "simple";
         ExecStart = concatStringsSep " " ([
