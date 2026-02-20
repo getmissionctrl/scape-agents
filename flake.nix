@@ -15,7 +15,7 @@
     };
 
     llm-agents = {
-      url = "github:numtide/llm-agents.nix";
+      url = "github:getmissionctrl/llm-agents.nix/add/zeroclaw";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
@@ -72,6 +72,7 @@
         duckdb-analyst = mkTemplate "duckdb-analyst";
         claude-code = mkTemplate "claude-code";
         openclaw = mkTemplate "openclaw";
+        zeroclaw = mkTemplate "zeroclaw";
       };
 
       packages.${system} = {
@@ -84,6 +85,7 @@
         duckdb-analyst = self.nixosConfigurations.duckdb-analyst.config.microvm.declaredRunner;
         claude-code = self.nixosConfigurations.claude-code.config.microvm.declaredRunner;
         openclaw = self.nixosConfigurations.openclaw.config.microvm.declaredRunner;
+        zeroclaw = self.nixosConfigurations.zeroclaw.config.microvm.declaredRunner;
       };
 
       # Template flake outputs for `nix flake init`
@@ -107,6 +109,10 @@
         openclaw = {
           path = ./templates/openclaw;
           description = "OpenClaw AI assistant with gateway web service";
+        };
+        zeroclaw = {
+          path = ./templates/zeroclaw;
+          description = "ZeroClaw AI assistant with gateway web service";
         };
       };
 
