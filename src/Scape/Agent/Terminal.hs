@@ -22,6 +22,7 @@ import qualified Data.Text as T
 import Data.Word (Word32)
 import GHC.Generics (Generic)
 import qualified Network.WebSockets as WS
+import System.Environment (getEnvironment)
 import System.Posix.Pty (Pty, spawnWithPty, readPty, writePty, resizePty)
 import System.Posix.User (getEffectiveUserID)
 import System.Process (ProcessHandle, terminateProcess)
@@ -42,25 +43,33 @@ instance FromJSON ResizeMessage where
     pure ResizeMessage { rmType = t, rmCols = c, rmRows = r }
 
 -- | Determine the shell command and args based on effective UID.
--- When root (uid 0), runs bash via runuser as operator.
--- Otherwise, runs bash directly.
+-- When root (uid 0), runs a login session as operator via runuser -l
+-- (which changes to the operator home directory and sets up a login env).
+-- Otherwise, runs bash directly as a login shell.
 terminalShellCmd :: Word32 -> (String, [String])
 terminalShellCmd uid
-  | uid == 0  = ("runuser", ["-u", "operator", "--", "bash", "-l"])
+  | uid == 0  = ("runuser", ["-l", "operator"])
   | otherwise = ("bash", ["-l"])
 
--- | Handle a terminal WebSocket connection
---
--- Spawns a PTY with a login shell as operator, bridges WS <-> PTY.
+-- | Set or override an environment variable in an assoc list.
+setVar :: String -> String -> [(String, String)] -> [(String, String)]
+setVar key val = ((key, val) :) . filter ((/= key) . fst)
+
 terminalHandler :: WS.Connection -> IO ()
 terminalHandler conn = do
   -- Determine shell command based on whether we're root
   uid <- getEffectiveUserID
   let (shellCmd, shellArgs) = terminalShellCmd (fromIntegral uid)
 
+  -- Inherit parent env, ensure TERM and LANG are set for color + unicode
+  parentEnv <- getEnvironment
+  let env = setVar "TERM" "xterm-256color"
+          . setVar "LANG" "C.UTF-8"
+          $ parentEnv
+
   -- Spawn PTY with initial size 80x24
   (pty, ph) <- spawnWithPty
-    Nothing           -- env (inherit)
+    (Just env)        -- env with TERM + LANG
     True              -- search PATH
     shellCmd          -- command
     shellArgs         -- args

@@ -87,6 +87,7 @@
 
   # System basics
   system.stateVersion = "24.05";
+  i18n.defaultLocale = "C.UTF-8";
 
   # Unprivileged operator user for running all user workloads
   users.users.operator = {
