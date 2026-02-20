@@ -110,6 +110,7 @@
     iproute2
     tmux
     util-linux
+    btop
   ];
 
   # Enable systemd lingering for operator so user services persist
