@@ -32,10 +32,10 @@ spec = describe "Terminal" $ do
       result `shouldBe` Nothing
 
   describe "terminalShellCmd" $ do
-    it "uses runuser as root" $ do
+    it "uses runuser login session as root" $ do
       let (cmd, args) = terminalShellCmd 0
       cmd `shouldBe` "runuser"
-      args `shouldBe` ["-u", "operator", "--", "bash", "-l"]
+      args `shouldBe` ["-l", "operator"]
 
     it "does not use /usr/bin/env" $ do
       let (cmd, _) = terminalShellCmd 0
