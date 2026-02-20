@@ -12,6 +12,7 @@
   # Claude Code from llm-agents.nix
   environment.systemPackages = [
     llm-agents.packages.${pkgs.system}.claude-code
+    llm-agents.packages.${pkgs.system}.openclaw
   ];
 
   # More resources for AI workloads
