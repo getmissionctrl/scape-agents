@@ -44,10 +44,30 @@
       cid = 3;  # Guest CID (host is always 2)
     };
 
-    # No persistent volumes - ephemeral sandbox
-    # Persistent home for operator will be added when orchestrator
-    # supports provisioning and injecting volume images at spawn time
+    # No persistent microvm volumes - persistence is via Firecracker
+    # secondary block device (/dev/vdb) mounted at /home/operator
     volumes = [];
+  };
+
+  # Persistent home volume (attached by orchestrator as /dev/vdb)
+  # With nofail, instances without a volume boot normally with ephemeral home.
+  fileSystems."/home/operator" = {
+    device = "/dev/vdb";
+    fsType = "ext4";
+    options = [ "nofail" "defaults" ];
+  };
+
+  # Ensure operator owns their home directory after volume mount
+  systemd.services.fix-operator-home = {
+    description = "Ensure operator home ownership";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "local-fs.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      ExecStart = "${pkgs.coreutils}/bin/chown -R operator:operator /home/operator";
+    };
+    unitConfig.ConditionPathExists = "/dev/vdb";
   };
 
   # Enable scape-agent
