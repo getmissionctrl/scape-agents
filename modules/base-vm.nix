@@ -61,7 +61,8 @@
   systemd.services.fix-operator-home = {
     description = "Ensure operator home ownership";
     wantedBy = [ "multi-user.target" ];
-    after = [ "local-fs.target" ];
+    after = [ "home-operator.mount" ];
+    requires = [ "home-operator.mount" ];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
