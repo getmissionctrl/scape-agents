@@ -31,10 +31,10 @@
       RestartSec = "2s";
       WorkingDirectory = "/home/operator";
     };
-    # Read secrets from /run/secrets (injected by orchestrator via NATS)
+    # Read secrets from /run/scape/secrets (injected by orchestrator via NATS)
     # and export them as environment variables before starting the gateway
     script = ''
-      for f in /run/secrets/*; do
+      for f in /run/scape/secrets/*; do
         [ -f "$f" ] && export "$(basename "$f")"="$(cat "$f")"
       done
       exec ${llm-agents.packages.${pkgs.system}.zeroclaw}/bin/zeroclaw gateway run

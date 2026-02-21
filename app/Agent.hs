@@ -399,16 +399,19 @@ handleReadFile logEnv publish req = do
 
 -- | Handle inject secrets command
 --
--- Writes each secret to a file in the target directory with 0600 permissions.
+-- Writes each secret to a file in the target directory with 0644 permissions.
+-- Files are world-readable since VMs are single-user sandboxes and the operator
+-- user needs to read secrets for service startup.
 handleInjectSecrets :: LogEnv -> ObservationPublisher -> PC.SecretsRequest -> IO ()
 handleInjectSecrets logEnv publish req = do
   logInfoIO logEnv ns $ logT $ "Injecting " <> showT (Map.size req.secrets) <> " secrets"
   createDirectoryIfMissing True req.targetDir
+  setFileMode req.targetDir 0o755
   let secretsList = Map.toList req.secrets
   forM_ secretsList $ \(secretName, secretValue) -> do
     let filePath = req.targetDir </> T.unpack secretName
     TIO.writeFile filePath secretValue
-    setFileMode filePath 0o600
+    setFileMode filePath 0o644
   publish $ ObsSecretsInjected SecretsInjectedEvent
     { count = length secretsList
     , targetDir = req.targetDir
