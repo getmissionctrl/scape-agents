@@ -68,16 +68,14 @@
     };
   };
 
-  # --- ZeroClaw daemon service ---
-  systemd.services.zeroclaw-daemon = {
+  # --- ZeroClaw daemon as operator user service ---
+  # Manageable with: systemctl --user {start,stop,restart,status} zeroclaw-daemon
+  systemd.user.services.zeroclaw-daemon = {
     description = "ZeroClaw Daemon";
-    wantedBy = [ "multi-user.target" ];
-    wants = [ "network-online.target" ];
-    after = [ "network-online.target" "scape-agent.service" "xvfb.service" ];
+    wantedBy = [ "default.target" ];
+    after = [ "network-online.target" "xvfb.service" ];
     environment.DISPLAY = ":99";
     serviceConfig = {
-      User = "operator";
-      Group = "operator";
       Restart = "always";
       RestartSec = "2s";
       WorkingDirectory = "/home/operator";
