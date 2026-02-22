@@ -15,7 +15,7 @@
     };
 
     llm-agents = {
-      url = "github:getmissionctrl/llm-agents.nix/add/zeroclaw";
+      url = "github:getmissionctrl/llm-agents.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
