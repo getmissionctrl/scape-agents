@@ -27,6 +27,23 @@
     pkgs.xclip            # clipboard
   ];
 
+  # SSH for interactive debugging
+  services.openssh = {
+    enable = true;
+    settings = {
+      PermitRootLogin = "yes";
+      PasswordAuthentication = false;
+    };
+  };
+
+  # SSH keys for root and operator
+  users.users.root.openssh.authorizedKeys.keys = [
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJI4iaVjJcoj4La4dcWYDRyjlyDADrL3kbZ9Eux6I6s2 ben@scape"
+  ];
+  users.users.operator.openssh.authorizedKeys.keys = [
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJI4iaVjJcoj4La4dcWYDRyjlyDADrL3kbZ9Eux6I6s2 ben@scape"
+  ];
+
   # More resources for AI + desktop workloads
   microvm.mem = 4096;
   microvm.vcpu = 2;
