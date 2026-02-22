@@ -68,14 +68,21 @@
     };
   };
 
-  # --- ZeroClaw daemon as operator user service ---
-  # Manageable with: systemctl --user {start,stop,restart,status} zeroclaw-daemon
-  systemd.user.services.zeroclaw-daemon = {
+  # --- ZeroClaw daemon service ---
+  # Runs as operator but managed as a system service so it can depend on
+  # home-operator.mount (user services can't depend on system mounts).
+  # Operator can restart via: kill $(pgrep -f 'zeroclaw daemon')
+  # (systemd Restart=always will relaunch it automatically)
+  systemd.services.zeroclaw-daemon = {
     description = "ZeroClaw Daemon";
-    wantedBy = [ "default.target" ];
-    after = [ "network-online.target" "xvfb.service" ];
+    wantedBy = [ "multi-user.target" ];
+    wants = [ "network-online.target" ];
+    after = [ "network-online.target" "home-operator.mount" "fix-operator-home.service" "xvfb.service" ];
+    requires = [ "home-operator.mount" ];
     environment.DISPLAY = ":99";
     serviceConfig = {
+      User = "operator";
+      Group = "operator";
       Restart = "always";
       RestartSec = "2s";
       WorkingDirectory = "/home/operator";
@@ -89,6 +96,17 @@
       exec ${llm-agents.packages.${pkgs.system}.zeroclaw}/bin/zeroclaw daemon
     '';
   };
+
+  # Allow operator to restart the daemon without sudo
+  security.sudo.extraRules = [{
+    users = [ "operator" ];
+    commands = [
+      { command = "/run/current-system/sw/bin/systemctl restart zeroclaw-daemon"; options = [ "NOPASSWD" ]; }
+      { command = "/run/current-system/sw/bin/systemctl stop zeroclaw-daemon"; options = [ "NOPASSWD" ]; }
+      { command = "/run/current-system/sw/bin/systemctl start zeroclaw-daemon"; options = [ "NOPASSWD" ]; }
+      { command = "/run/current-system/sw/bin/systemctl status zeroclaw-daemon"; options = [ "NOPASSWD" ]; }
+    ];
+  }];
 
   # Template metadata
   scape.template.zeroclaw = {
