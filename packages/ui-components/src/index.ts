@@ -1,3 +1,5 @@
 export { DesktopViewer } from './DesktopViewer'
 export type { DesktopViewerProps } from './DesktopViewer'
+export { TerminalWidget } from './TerminalWidget'
+export type { TerminalWidgetProps } from './TerminalWidget'
 export type { ConnectionState } from './types'
