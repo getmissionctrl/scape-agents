@@ -112,6 +112,8 @@
   };
 
   # XFCE session on the virtual display
+  # Wrapped with dbus-launch so xfce4-settings and other XFCE components
+  # get a session bus (without it: "Unable to contact settings server").
   systemd.services.xfce-session = {
     description = "XFCE desktop session";
     after = [ "xvfb.service" ];
@@ -122,7 +124,7 @@
       HOME = "/home/operator";
     };
     serviceConfig = {
-      ExecStart = "${pkgs.xfce4-session}/bin/xfce4-session";
+      ExecStart = "${pkgs.dbus}/bin/dbus-launch --exit-with-session ${pkgs.xfce4-session}/bin/xfce4-session";
       Restart = "always";
       User = "operator";
     };
