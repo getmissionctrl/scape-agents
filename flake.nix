@@ -18,9 +18,14 @@
       url = "github:getmissionctrl/llm-agents.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    zeroclaw = {
+      url = "github:getmissionctrl/zeroclaw";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, natskell, microvm, llm-agents, ... }:
+  outputs = { self, nixpkgs, natskell, microvm, llm-agents, zeroclaw, ... }:
     let
       system = "x86_64-linux";
       pkgs = import nixpkgs { inherit system; };
@@ -44,7 +49,7 @@
       # Build a template as a NixOS microVM configuration
       mkTemplate = name: nixpkgs.lib.nixosSystem {
         inherit system;
-        specialArgs = { inherit self llm-agents; };
+        specialArgs = { inherit self llm-agents zeroclaw; };
         modules = [
           microvm.nixosModules.microvm
           ./templates/${name}/default.nix

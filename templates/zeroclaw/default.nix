@@ -4,7 +4,7 @@
 # as an operator user systemd service with a headless desktop environment
 # for browser automation / computer-use tools.
 # Secrets (OPENROUTER_API_KEY etc.) are injected at /run/scape/secrets by the orchestrator.
-{ self, pkgs, llm-agents, ... }:
+{ self, pkgs, llm-agents, zeroclaw, ... }:
 
 {
   imports = [
@@ -13,7 +13,7 @@
 
   # --- Packages ---
   environment.systemPackages = [
-    llm-agents.packages.${pkgs.system}.zeroclaw
+    zeroclaw.packages.${pkgs.system}.default
 
     # Browser automation — agent-browser bundles chromium + chromedriver
     llm-agents.packages.${pkgs.system}.agent-browser
@@ -199,7 +199,7 @@
       for f in /run/scape/secrets/*; do
         [ -f "$f" ] && export "$(basename "$f")"="$(cat "$f")"
       done
-      exec ${llm-agents.packages.${pkgs.system}.zeroclaw}/bin/zeroclaw daemon
+      exec ${zeroclaw.packages.${pkgs.system}.default}/bin/zeroclaw daemon
     '';
   };
 
