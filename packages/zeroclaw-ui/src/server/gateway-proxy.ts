@@ -1,62 +1,93 @@
-import { WebSocket as NodeWebSocket } from 'ws'
 import type { WSContext, WSEvents } from 'hono/ws'
+import crypto from 'crypto'
 
 /**
- * Creates a WebSocket proxy that returns hono WSEvents handlers
- * to forward frames between a client and the zeroclaw gateway.
+ * Bridges browser WebSocket to the zeroclaw HTTP gateway.
+ *
+ * The zeroclaw gateway exposes POST /webhook with { message: string }
+ * and returns { response: string, model: string }.
+ *
+ * This handler converts WS chat messages into HTTP POST calls
+ * and sends the response back over the WebSocket.
  */
 export function createGatewayProxy(gatewayUrl: string) {
-  return function createHandlers(): WSEvents<NodeWebSocket> {
-    let upstream: NodeWebSocket | null = null
+  // gatewayUrl is e.g. "http://127.0.0.1:3000" — we POST to /webhook
+  const webhookUrl = gatewayUrl.replace(/^ws/, 'http') + '/webhook'
+
+  return function createHandlers(): WSEvents {
     let clientWs: WSContext | null = null
-    const buffer: string[] = []
 
     return {
       onOpen(_event, ws) {
         clientWs = ws
-        upstream = new NodeWebSocket(gatewayUrl)
-
-        upstream.on('open', () => {
-          for (const msg of buffer) {
-            upstream!.send(msg)
-          }
-          buffer.length = 0
-        })
-
-        upstream.on('message', (data) => {
-          try {
-            if (clientWs && clientWs.readyState === 1) {
-              clientWs.send(typeof data === 'string' ? data : data.toString())
-            }
-          } catch {
-            // Client disconnected
-          }
-        })
-
-        upstream.on('close', () => {
-          try { clientWs?.close() } catch { /* ignore */ }
-        })
-
-        upstream.on('error', (err) => {
-          console.error('[gateway-proxy] upstream error:', err.message)
-          try { clientWs?.close() } catch { /* ignore */ }
-        })
       },
 
-      onMessage(event) {
-        const data = typeof event.data === 'string' ? event.data : String(event.data)
-        if (upstream && upstream.readyState === NodeWebSocket.OPEN) {
-          upstream.send(data)
-        } else {
-          buffer.push(data)
+      async onMessage(event) {
+        if (!clientWs) return
+
+        const raw = typeof event.data === 'string' ? event.data : String(event.data)
+        let parsed: { type: string; text?: string; images?: string[] }
+        try {
+          parsed = JSON.parse(raw)
+        } catch {
+          return
+        }
+
+        if (parsed.type !== 'chat' || !parsed.text?.trim()) return
+
+        const runId = crypto.randomUUID()
+
+        // Send streaming indicator so UI shows typing state
+        try {
+          clientWs.send(JSON.stringify({
+            type: 'chat',
+            state: 'streaming',
+            runId,
+            text: '',
+          }))
+        } catch { /* client gone */ }
+
+        try {
+          const resp = await fetch(webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: parsed.text }),
+          })
+
+          if (!resp.ok) {
+            const errBody = await resp.text()
+            clientWs.send(JSON.stringify({
+              type: 'chat',
+              state: 'final',
+              runId,
+              text: `Error: gateway returned ${resp.status}`,
+              error: errBody,
+            }))
+            return
+          }
+
+          const body = await resp.json() as { response: string; model?: string }
+
+          clientWs.send(JSON.stringify({
+            type: 'chat',
+            state: 'final',
+            runId,
+            text: body.response,
+          }))
+        } catch (err) {
+          try {
+            clientWs.send(JSON.stringify({
+              type: 'chat',
+              state: 'final',
+              runId,
+              text: `Error: ${(err as Error).message}`,
+              error: (err as Error).message,
+            }))
+          } catch { /* client gone */ }
         }
       },
 
       onClose() {
-        if (upstream && upstream.readyState === NodeWebSocket.OPEN) {
-          upstream.close()
-        }
-        upstream = null
         clientWs = null
       },
     }

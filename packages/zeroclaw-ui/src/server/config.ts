@@ -3,7 +3,7 @@ import os from 'os'
 
 export const config = {
   port: parseInt(process.env.PORT || '5000', 10),
-  gatewayUrl: process.env.GATEWAY_URL || 'ws://127.0.0.1:3000',
+  gatewayUrl: process.env.GATEWAY_URL || 'http://127.0.0.1:3000',
   botName: process.env.BOT_NAME || 'ZeroClaw',
   enableVoice: (process.env.ENABLE_VOICE || 'true').toLowerCase() === 'true',
   ttsCommand:
