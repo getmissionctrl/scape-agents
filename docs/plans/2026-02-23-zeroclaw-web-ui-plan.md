@@ -4,7 +4,7 @@
 
 **Goal:** Build a React/Vite/TypeScript web UI for the zeroclaw template with chat, voice, widgets, fullscreen desktop viewer, and fullscreen terminal.
 
-**Architecture:** Npm workspace with two packages — `@scape/ui-components` (shared DesktopViewer + TerminalWidget) and `@scape/zeroclaw-ui` (Hono server + React SPA). Server on port 5000 serves static SPA, proxies chat WS to zeroclaw gateway:3000, and provides TTS/message REST endpoints. Terminal/VNC WebSocket connections go directly through the platform proxy to agent:8080.
+**Architecture:** Npm workspace with two packages — `@scape/ui-components` (shared DesktopViewer + TerminalWidget) and `@scape/zeroclaw-ui` (Hono server + React SPA). Server on port 5000 serves static SPA, proxies chat WS to zeroclaw's WebChannel on port 5100, and provides TTS/message REST endpoints. Terminal/VNC WebSocket connections go directly through the platform proxy to agent:8080.
 
 **Tech Stack:** React 18, Vite 6, TypeScript 5, Hono, Vitest, React Testing Library, Tailwind CSS, xterm.js, noVNC, npm workspaces.
 
@@ -14,6 +14,78 @@
 - ClawTime (gitingest at `clawtimeingest.txt`) — chat, voice, widgets, store
 - Scape console (`/home/ben/dev/scape/console/src/components/DesktopViewer.tsx`) — noVNC
 - Scape console (`/home/ben/dev/scape/console/src/components/Terminal.tsx`) — xterm.js
+
+---
+
+## Status & Kickoff Brief for Next Session
+
+### Completed Tasks (Tasks 1-12)
+
+All work is on branch `feature/zeroclaw-web-ui` in a worktree at `.worktrees/zeroclaw-web-ui/`.
+
+| Task | Description | Status | Tests |
+|------|-------------|--------|-------|
+| 1 | npm workspace scaffolding | DONE | n/a |
+| 2 | DesktopViewer (ui-components) | DONE | 3 pass |
+| 3 | TerminalWidget (ui-components) | DONE | 2 pass |
+| 4 | Server config module | DONE | 2 pass |
+| 5 | Message store | DONE | 4 pass |
+| 6 | Gateway WebSocket proxy | DONE | 3 pass |
+| 7 | TTS endpoint | DONE | 8 pass |
+| 8 | Hono HTTP + WS server entry | DONE | n/a (wiring) |
+| 9 | Client types, CSS, main.tsx | DONE | n/a |
+| 10 | Widget parsing utility | DONE | 4 pass |
+| 11 | useGateway WebSocket hook | DONE | 3 pass |
+| 12 | useMessages hook | DONE | n/a (stateful hook) |
+
+**Total tests passing:** 29 (5 ui-components + 24 zeroclaw-ui)
+
+### Remaining Tasks (Tasks 13-22)
+
+| Task | Description | Phase |
+|------|-------------|-------|
+| 13 | MessageBubble component | Phase 5: Chat UI |
+| 14 | InputBar component | Phase 5: Chat UI |
+| 15 | ChatPanel, App shell, Layout | Phase 5: Chat UI |
+| 16 | WidgetRenderer + core widgets | Phase 6: Widgets |
+| 17 | DesktopModal + TerminalModal | Phase 7: Modals |
+| 18 | useVoice hook + VoiceButton | Phase 8: Voice |
+| 19 | TaskPanel component | Phase 9: Tasks |
+| 20 | Integration test | Phase 10: Integration |
+| 21 | Update NixOS template | Phase 10: Integration |
+| 22 | Final build verification | Phase 10: Integration |
+
+### Critical Blocker (Resolved)
+
+The zeroclaw gateway was discovered to be **HTTP-only** (`POST /webhook`), not WebSocket. This blocks the streaming chat UI. A separate plan has been written to add a `WebChannel` to the zeroclaw Rust codebase:
+
+**Plan:** `~/dev/agents/zeroclaw/docs/plans/2026-02-23-web-channel.md`
+
+The WebChannel implements the `Channel` trait with an axum WebSocket server on port 5100. It gets the full agent loop (tools, streaming, history, cancellation) for free through the existing channel dispatch pipeline.
+
+**Dependency order:**
+1. **First:** Implement WebChannel in `~/dev/agents/zeroclaw` (separate session/PR)
+2. **Then:** Update gateway-proxy.ts here to do direct WS-to-WS forwarding to port 5100
+3. **Then:** Continue with Tasks 13-22
+
+### Changes Made vs Original Plan
+
+1. **Gateway proxy reworked** — Task 6's proxy was rewritten from WS-to-WS forwarding to WS-to-HTTP bridging to work with the existing HTTP-only gateway. Once the WebChannel lands, this gets reverted to direct WS forwarding.
+2. **Config default changed** — `GATEWAY_URL` default is `http://127.0.0.1:3000` (was `ws://`). Will change to `ws://127.0.0.1:5100` after WebChannel.
+3. **`ws` package no longer needed** — The HTTP bridging approach uses `fetch()` instead of the `ws` npm package. After WebChannel lands and we revert to WS forwarding, we'll need to re-evaluate whether to use the `ws` package or browser-native WebSocket relay.
+4. **`@types/ws` kept as devDependency** — Will be needed again after WS forwarding is restored.
+
+### Worktree Location
+
+```
+/home/ben/dev/scape-agents/.worktrees/zeroclaw-web-ui/
+```
+
+All npm workspace code is under `packages/` in that worktree. Run tests with:
+```bash
+cd packages/ui-components && npx vitest run    # 5 tests
+cd packages/zeroclaw-ui && npx vitest run      # 24 tests
+```
 
 ---
 
