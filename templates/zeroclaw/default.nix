@@ -15,16 +15,18 @@
   environment.systemPackages = [
     llm-agents.packages.${pkgs.system}.zeroclaw
 
-    # Browser for automation / computer-use
+    # Browser automation — agent-browser bundles chromium + chromedriver
+    llm-agents.packages.${pkgs.system}.agent-browser
     pkgs.chromium
 
     # Headless display
-    pkgs.xorg-server      # Xvfb
+    pkgs.xorg-server  # Xvfb
 
     # Computer-use tools
     pkgs.xdotool          # mouse/keyboard control
     pkgs.scrot            # screenshots
     pkgs.xclip            # clipboard
+    pkgs.imagemagick      # image processing for screenshots
 
     # Shell essentials
     pkgs.bash
@@ -59,6 +61,7 @@
 
     # Scripting runtimes
     pkgs.python3
+    pkgs.nodejs-slim
 
     # System tools
     pkgs.procps           # ps, top, pgrep, pkill
