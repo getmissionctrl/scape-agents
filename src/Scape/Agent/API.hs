@@ -53,5 +53,8 @@ type AgentAPI =
        -- Interactive terminal (PTY over WebSocket)
   :<|> "ws" :> "terminal" :> WebSocket
 
+       -- VNC desktop proxy (RFB over WebSocket)
+  :<|> "ws" :> "vnc" :> WebSocket
+
 agentAPI :: Proxy AgentAPI
 agentAPI = Proxy

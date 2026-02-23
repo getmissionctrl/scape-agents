@@ -25,6 +25,7 @@ import Scape.Agent.State
 import Scape.Agent.Stream.WebSocket (wsHandler)
 import Scape.Agent.Stream.SSE (sseHandler, openAIHandler)
 import Scape.Agent.Terminal (terminalHandler)
+import Scape.Agent.VNC (vncHandler)
 import Scape.Protocol.Types (CommandId, Token)
 import Scape.Protocol.AISDK (ChatRequest, ChatEvent, OpenAIChatRequest, OpenAIStreamChunk)
 
@@ -61,6 +62,7 @@ server startTime config =
   :<|> sseEndpoint
   :<|> openAIEndpoint
   :<|> terminalEndpoint
+  :<|> vncEndpoint
 
 -- | Health check endpoint
 healthHandler :: UTCTime -> ServerConfig -> AppM HealthStatus
@@ -163,6 +165,12 @@ terminalEndpoint :: WS.Connection -> AppM ()
 terminalEndpoint conn = do
   $(logTM) InfoS "Terminal WebSocket connection"
   liftIO $ terminalHandler conn
+
+-- | VNC WebSocket proxy (bridges to local x11vnc)
+vncEndpoint :: WS.Connection -> AppM ()
+vncEndpoint conn = do
+  $(logTM) InfoS "VNC WebSocket connection"
+  liftIO $ vncHandler conn
 
 -- | Throw a ServerError in AppM (via IO exception)
 -- Since AppM is ReaderT over IO, we throw ServerError as an exception

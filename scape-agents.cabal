@@ -38,6 +38,7 @@ library
     Scape.Agent.Stream.WebSocket
     Scape.Agent.Stream.SSE
     Scape.Agent.Terminal
+    Scape.Agent.VNC
 
   build-depends:
       base >= 4.17 && < 5
@@ -142,6 +143,7 @@ test-suite scape-agents-test
     Agent.ExecutorSpec
     Agent.NatsSpec
     Agent.TerminalSpec
+    Agent.VNCSpec
     Protocol.CommandSpec
     Protocol.ObservationSpec
     Protocol.MMDSSpec
@@ -154,6 +156,7 @@ test-suite scape-agents-test
       base >= 4.17 && < 5
     , scape-agents
     , aeson
+    , async
     , base64-bytestring
     , bytestring
     , containers

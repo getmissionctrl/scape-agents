@@ -27,6 +27,7 @@
     pkgs.scrot            # screenshots
     pkgs.xclip            # clipboard
     pkgs.imagemagick      # image processing for screenshots
+    pkgs.x11vnc           # VNC server for desktop streaming
 
     # Shell essentials
     pkgs.bash
@@ -122,6 +123,23 @@
     };
     serviceConfig = {
       ExecStart = "${pkgs.xfce4-session}/bin/xfce4-session";
+      Restart = "always";
+      User = "operator";
+    };
+  };
+
+  # x11vnc — exposes the Xvfb framebuffer as VNC on localhost:5900
+  # The agent bridges this to WebSocket for browser-based desktop viewing.
+  systemd.services.x11vnc = {
+    description = "x11vnc VNC server";
+    after = [ "xvfb.service" ];
+    requires = [ "xvfb.service" ];
+    wantedBy = [ "multi-user.target" ];
+    environment = {
+      DISPLAY = ":99";
+    };
+    serviceConfig = {
+      ExecStart = "${pkgs.x11vnc}/bin/x11vnc -display :99 -forever -shared -rfbport 5900 -nopw -localhost -wait 50";
       Restart = "always";
       User = "operator";
     };
