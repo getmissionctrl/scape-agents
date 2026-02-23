@@ -122,6 +122,8 @@
     environment = {
       DISPLAY = ":99";
       HOME = "/home/operator";
+      XDG_CONFIG_DIRS = "/etc/xdg:/run/current-system/sw/etc/xdg";
+      XDG_DATA_DIRS = "/run/current-system/sw/share";
     };
     serviceConfig = {
       ExecStart = "${pkgs.dbus}/bin/dbus-launch --exit-with-session ${pkgs.xfce4-session}/bin/xfce4-session";
