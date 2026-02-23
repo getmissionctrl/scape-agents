@@ -25,6 +25,45 @@
     pkgs.xdotool          # mouse/keyboard control
     pkgs.scrot            # screenshots
     pkgs.xclip            # clipboard
+
+    # Shell essentials
+    pkgs.bash
+    pkgs.coreutils
+    pkgs.gnugrep
+    pkgs.gnused
+    pkgs.gawk
+    pkgs.findutils
+    pkgs.which
+    pkgs.tree
+    pkgs.file
+    pkgs.less
+
+    # Data processing
+    pkgs.jq
+    pkgs.yq-go
+    pkgs.duckdb
+    pkgs.sqlite
+    pkgs.csvkit
+
+    # Networking
+    pkgs.curl
+    pkgs.wget
+    pkgs.httpie
+
+    # Version control
+    pkgs.git
+
+    # Text search
+    pkgs.ripgrep
+    pkgs.fd
+
+    # Scripting runtimes
+    pkgs.python3
+
+    # System tools
+    pkgs.procps           # ps, top, pgrep, pkill
+    pkgs.htop
+    pkgs.tmux
   ];
 
   # SSH for interactive debugging
@@ -97,6 +136,7 @@
     after = [ "network-online.target" "home-operator.mount" "fix-operator-home.service" "xvfb.service" ];
     requires = [ "home-operator.mount" ];
     environment.DISPLAY = ":99";
+    path = [ "/run/current-system/sw" ];
     serviceConfig = {
       User = "operator";
       Group = "operator";
