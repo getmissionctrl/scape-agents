@@ -5,3 +5,5 @@ result
 *.o
 *.dyn_hi
 *.dyn_o
+.worktrees/
+node_modules/
