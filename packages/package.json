@@ -1,0 +1,5 @@
+{
+  "name": "scape-packages",
+  "private": true,
+  "workspaces": ["ui-components", "zeroclaw-ui"]
+}
