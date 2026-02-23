@@ -149,6 +149,30 @@
     };
   };
 
+  # --- ZeroClaw Web UI ---
+  # Serves the React SPA on port 5000 and proxies chat WS to the gateway.
+  # The UI package is built and copied into the Nix store at build time.
+  systemd.services.zeroclaw-ui = {
+    description = "ZeroClaw Web UI";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "network-online.target" "zeroclaw-daemon.service" ];
+    wants = [ "zeroclaw-daemon.service" ];
+    environment = {
+      PORT = "5000";
+      GATEWAY_URL = "ws://127.0.0.1:5100";
+      NODE_ENV = "production";
+      DATA_DIR = "/home/operator/.zeroclaw-ui";
+    };
+    serviceConfig = {
+      User = "operator";
+      Group = "operator";
+      Restart = "always";
+      RestartSec = "2s";
+      WorkingDirectory = "/home/operator";
+      ExecStart = "${pkgs.nodejs-slim}/bin/node ${../packages/zeroclaw-ui/dist/server/index.js}";
+    };
+  };
+
   # --- ZeroClaw daemon service ---
   # Runs as operator but managed as a system service so it can depend on
   # home-operator.mount (user services can't depend on system mounts).
@@ -202,6 +226,7 @@
     ];
     services = [
       { name = "gateway"; port = 3000; path = "/"; type = "http"; }
+      { name = "ui"; port = 5000; path = "/"; type = "http"; }
     ];
   };
 }

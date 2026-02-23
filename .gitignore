@@ -7,3 +7,4 @@ result
 *.dyn_o
 .worktrees/
 node_modules/
+packages/*/dist/
