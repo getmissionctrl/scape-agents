@@ -24,7 +24,7 @@ export interface WidgetResponse {
 export interface GatewayMessage {
   type: string
   text?: string
-  state?: 'streaming' | 'final'
+  state?: 'streaming' | 'final' | 'cancelled'
   runId?: string
   error?: string
   images?: string[]

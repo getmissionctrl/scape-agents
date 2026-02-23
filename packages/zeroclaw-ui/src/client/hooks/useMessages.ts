@@ -70,6 +70,11 @@ export function useMessages() {
         return updated
       }
 
+      if (existing !== -1 && data.state === 'cancelled') {
+        // Remove cancelled streaming message
+        return prev.filter((_, i) => i !== existing)
+      }
+
       if (data.state === 'streaming') {
         // New streaming message
         return [
