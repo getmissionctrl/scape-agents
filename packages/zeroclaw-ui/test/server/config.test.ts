@@ -15,7 +15,7 @@ describe('config', () => {
   it('uses default values when no env vars set', async () => {
     const { config } = await import('../../src/server/config')
     expect(config.port).toBe(5000)
-    expect(config.gatewayUrl).toBe('http://127.0.0.1:3000')
+    expect(config.gatewayUrl).toBe('ws://127.0.0.1:5100')
     expect(config.botName).toBe('ZeroClaw')
     expect(config.enableVoice).toBe(true)
     expect(config.themeAccent).toBe('6366f1')

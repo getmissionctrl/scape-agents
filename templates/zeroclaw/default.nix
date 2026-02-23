@@ -224,8 +224,8 @@
       "ZEROCLAW_MODEL"
       "ZEROCLAW_WORKSPACE"
     ];
+    # UI must be first — platform proxy routes non-/ws/* traffic to services[0].port
     services = [
-      { name = "gateway"; port = 3000; path = "/"; type = "http"; }
       { name = "ui"; port = 5000; path = "/"; type = "http"; }
     ];
   };
