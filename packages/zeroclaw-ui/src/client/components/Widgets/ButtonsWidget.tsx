@@ -11,13 +11,13 @@ export function ButtonsWidget({ widget, onRespond }: ButtonsWidgetProps) {
 
   return (
     <div className="mt-2">
-      {label && <div className="text-xs text-gray-400 mb-1.5">{label}</div>}
+      {label && <div className="text-xs text-fg-muted mb-1.5">{label}</div>}
       <div className="flex flex-wrap gap-2">
         {options.map((opt) => (
           <button
             key={opt}
             onClick={() => onRespond(widget.id, 'buttons', opt, 'submit')}
-            className="px-3 py-1.5 text-sm rounded-lg bg-gray-700 text-gray-200 hover:bg-indigo-600 hover:text-white transition-colors"
+            className="px-3 py-1.5 text-sm rounded-lg bg-bg-elevated text-fg-secondary border border-fg-subtle/20 hover:border-accent-cyan/30 hover:text-accent-cyan transition-colors"
           >
             {opt}
           </button>

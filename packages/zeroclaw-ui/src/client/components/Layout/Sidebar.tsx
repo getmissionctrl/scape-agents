@@ -1,3 +1,6 @@
+import { MessageSquare, Monitor, TerminalSquare } from 'lucide-react'
+import type { ReactNode } from 'react'
+
 export type ViewMode = 'chat' | 'desktop' | 'terminal'
 
 export interface SidebarProps {
@@ -6,24 +9,28 @@ export interface SidebarProps {
   connected: boolean
 }
 
-const navItems: { id: ViewMode; label: string; icon: string }[] = [
-  { id: 'chat', label: 'Chat', icon: '💬' },
-  { id: 'desktop', label: 'Desktop', icon: '🖥' },
-  { id: 'terminal', label: 'Terminal', icon: '⌨' },
+const navItems: { id: ViewMode; label: string; icon: ReactNode }[] = [
+  { id: 'chat', label: 'Chat', icon: <MessageSquare size={18} /> },
+  { id: 'desktop', label: 'Desktop', icon: <Monitor size={18} /> },
+  { id: 'terminal', label: 'Terminal', icon: <TerminalSquare size={18} /> },
 ]
 
 export function Sidebar({ active, onNavigate, connected }: SidebarProps) {
   return (
-    <nav className="flex flex-col w-16 bg-gray-900 border-r border-gray-800 items-center py-4 gap-2">
+    <nav className="flex flex-col w-14 bg-bg-raised border-r border-fg-subtle/20 items-center py-4 gap-1.5">
+      <div className="mb-3 flex items-center gap-1.5" title="ZeroClaw">
+        <span className="w-2 h-2 rounded-full bg-accent-cyan shadow-glow-cyan" />
+        <span className="text-[10px] font-mono font-medium text-fg-secondary tracking-wider">ZC</span>
+      </div>
       {navItems.map((item) => (
         <button
           key={item.id}
           onClick={() => onNavigate(item.id)}
           title={item.label}
-          className={`w-11 h-11 rounded-xl flex items-center justify-center text-lg transition-colors ${
+          className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
             active === item.id
-              ? 'bg-indigo-600 text-white'
-              : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+              ? 'bg-accent-cyan/10 text-accent-cyan'
+              : 'text-fg-muted hover:bg-bg-elevated hover:text-fg-primary'
           }`}
         >
           {item.icon}
@@ -32,7 +39,11 @@ export function Sidebar({ active, onNavigate, connected }: SidebarProps) {
       <div className="mt-auto">
         <div
           title={connected ? 'Connected' : 'Disconnected'}
-          className={`w-3 h-3 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`}
+          className={`w-2.5 h-2.5 rounded-full transition-colors ${
+            connected
+              ? 'bg-accent-green shadow-glow-green'
+              : 'bg-accent-red'
+          }`}
         />
       </div>
     </nav>

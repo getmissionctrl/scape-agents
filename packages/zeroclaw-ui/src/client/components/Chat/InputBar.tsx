@@ -1,4 +1,5 @@
 import { useState, useRef, type KeyboardEvent } from 'react'
+import { Send } from 'lucide-react'
 
 export interface InputBarProps {
   onSend: (text: string) => void
@@ -25,7 +26,7 @@ export function InputBar({ onSend, disabled }: InputBarProps) {
   }
 
   return (
-    <div className="flex items-end gap-2 p-3 border-t border-gray-800 bg-gray-950">
+    <div className="flex items-end gap-2 p-3 border-t border-fg-subtle/15 bg-bg-base">
       <textarea
         ref={textareaRef}
         value={text}
@@ -34,15 +35,15 @@ export function InputBar({ onSend, disabled }: InputBarProps) {
         placeholder="Type a message..."
         disabled={disabled}
         rows={1}
-        className="flex-1 resize-none rounded-xl bg-gray-800 px-4 py-2.5 text-sm text-gray-100 placeholder-gray-500 outline-none focus:ring-2 focus:ring-indigo-500/50"
+        className="flex-1 resize-none rounded-lg bg-bg-surface px-4 py-2.5 text-sm text-fg-primary placeholder-fg-muted outline-none border border-fg-subtle/20 focus:border-accent-cyan focus:ring-1 focus:ring-accent-cyan/20 transition-colors"
       />
       <button
         onClick={handleSend}
         disabled={disabled}
         aria-label="Send"
-        className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="rounded-lg bg-accent-cyan px-3 py-2.5 text-bg-base hover:bg-accent-green disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-glow-cyan"
       >
-        Send
+        <Send size={16} />
       </button>
     </div>
   )

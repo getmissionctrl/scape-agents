@@ -13,18 +13,18 @@ export function MessageBubble({ message }: MessageBubbleProps) {
       data-streaming={message.streaming ? 'true' : undefined}
     >
       <div
-        className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+        className={`max-w-[80%] rounded-lg px-4 py-2.5 text-sm leading-relaxed ${
           isUser
-            ? 'bg-indigo-600 text-white rounded-br-md'
-            : 'bg-gray-800 text-gray-100 rounded-bl-md'
+            ? 'bg-accent-cyan/15 text-fg-secondary border border-accent-cyan/20 rounded-br-sm'
+            : 'bg-bg-raised text-fg-secondary border border-fg-subtle/15 rounded-bl-sm'
         }`}
       >
         <div className="whitespace-pre-wrap break-words">{message.text}</div>
         {message.streaming && (
           <div className="flex gap-1 mt-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-pulse" />
-            <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-pulse [animation-delay:150ms]" />
-            <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-pulse [animation-delay:300ms]" />
+            <span className="w-1.5 h-1.5 rounded-full bg-accent-cyan animate-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full bg-accent-cyan animate-pulse [animation-delay:150ms]" />
+            <span className="w-1.5 h-1.5 rounded-full bg-accent-cyan animate-pulse [animation-delay:300ms]" />
           </div>
         )}
       </div>

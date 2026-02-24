@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "vite",
     "dev:server": "node --import tsx src/server/index.ts",
-    "build": "vite build",
+    "build": "vite build && npm run build:server",
+    "build:server": "esbuild src/server/index.ts --bundle --platform=node --format=esm --outfile=dist/server/index.js --external:bufferutil --external:utf-8-validate --banner:js=\"import { createRequire } from 'module'; const require = createRequire(import.meta.url);\"",
     "start": "node dist/server/index.js",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -29,6 +30,7 @@
     "@types/ws": "^8.0.0",
     "@vitejs/plugin-react": "^4.0.0",
     "autoprefixer": "^10.4.0",
+    "esbuild": "^0.24.0",
     "jsdom": "^25.0.0",
     "postcss": "^8.4.0",
     "tailwindcss": "^3.4.0",

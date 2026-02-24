@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { X } from 'lucide-react'
 import { TerminalWidget } from '@scape/ui-components'
 import type { ConnectionState } from '@scape/ui-components'
 
@@ -10,6 +11,13 @@ export interface TerminalModalProps {
 function buildWsUrl(): string {
   const proto = location.protocol === 'https:' ? 'wss:' : 'ws:'
   return `${proto}//${location.host}/ws/terminal`
+}
+
+const statusStyles: Record<ConnectionState, string> = {
+  connected: 'bg-accent-green/15 text-accent-green border border-accent-green/30',
+  connecting: 'bg-accent-yellow/15 text-accent-yellow border border-accent-yellow/30',
+  disconnected: 'bg-accent-red/15 text-accent-red border border-accent-red/30',
+  failed: 'bg-accent-red/15 text-accent-red border border-accent-red/30',
 }
 
 export function TerminalModal({ open, onClose }: TerminalModalProps) {
@@ -30,27 +38,21 @@ export function TerminalModal({ open, onClose }: TerminalModalProps) {
   return (
     <div
       data-testid="terminal-modal"
-      className="fixed inset-0 z-50 bg-gray-950 flex flex-col"
+      className="fixed inset-0 z-50 bg-bg-base flex flex-col"
     >
-      <div className="flex items-center justify-between px-4 py-2 bg-gray-900 border-b border-gray-800">
+      <div className="flex items-center justify-between px-4 py-2 bg-bg-raised border-b border-fg-subtle/20">
         <div className="flex items-center gap-3">
-          <span className="text-sm font-medium text-gray-200">Terminal</span>
-          <span className={`text-xs px-2 py-0.5 rounded-full ${
-            connectionState === 'connected'
-              ? 'bg-green-900 text-green-300'
-              : connectionState === 'connecting'
-              ? 'bg-yellow-900 text-yellow-300'
-              : 'bg-red-900 text-red-300'
-          }`}>
+          <span className="text-sm font-medium text-fg-secondary">Terminal</span>
+          <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${statusStyles[connectionState]}`}>
             {connectionState}
           </span>
         </div>
         <button
           onClick={onClose}
           aria-label="Close"
-          className="text-gray-400 hover:text-white transition-colors text-lg px-2"
+          className="text-fg-muted hover:text-fg-primary transition-colors p-1 rounded hover:bg-bg-elevated"
         >
-          ✕
+          <X size={16} />
         </button>
       </div>
       <div className="flex-1 min-h-0">

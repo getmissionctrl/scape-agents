@@ -4,7 +4,7 @@
 # as an operator user systemd service with a headless desktop environment
 # for browser automation / computer-use tools.
 # Secrets (OPENROUTER_API_KEY etc.) are injected at /run/scape/secrets by the orchestrator.
-{ self, pkgs, llm-agents, zeroclaw, ... }:
+{ self, pkgs, llm-agents, zeroclaw, zeroclawUiPkg, ... }:
 
 {
   imports = [
@@ -156,7 +156,7 @@
     description = "ZeroClaw Web UI";
     wantedBy = [ "multi-user.target" ];
     after = [ "network-online.target" "zeroclaw-daemon.service" ];
-    wants = [ "zeroclaw-daemon.service" ];
+    wants = [ "network-online.target" "zeroclaw-daemon.service" ];
     environment = {
       PORT = "5000";
       GATEWAY_URL = "ws://127.0.0.1:5100";
@@ -169,7 +169,7 @@
       Restart = "always";
       RestartSec = "2s";
       WorkingDirectory = "/home/operator";
-      ExecStart = "${pkgs.nodejs-slim}/bin/node ${../packages/zeroclaw-ui/dist/server/index.js}";
+      ExecStart = "${pkgs.nodejs-slim}/bin/node ${zeroclawUiPkg}/dist/server/index.js";
     };
   };
 

@@ -10,7 +10,7 @@ export interface AppShellProps {
 
 export function AppShell({ activeView, onNavigate, connected, children }: AppShellProps) {
   return (
-    <div className="flex h-screen w-screen bg-gray-950 text-gray-100">
+    <div className="flex h-screen w-screen bg-bg-base text-fg-primary">
       <Sidebar active={activeView} onNavigate={onNavigate} connected={connected} />
       <main className="flex-1 min-w-0">{children}</main>
     </div>

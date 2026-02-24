@@ -24,11 +24,12 @@ export function ChatPanel({ messages, loading, onSend, disabled }: ChatPanelProp
     <div className="flex flex-col h-full">
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3">
         {loading && (
-          <div className="text-center text-gray-500 py-8">Loading messages...</div>
+          <div className="text-center text-fg-muted py-8 text-sm">Loading messages...</div>
         )}
         {!loading && messages.length === 0 && (
-          <div className="text-center text-gray-500 py-8">
-            No messages yet. Start a conversation!
+          <div className="flex flex-col items-center justify-center h-full text-fg-muted">
+            <div className="w-3 h-3 rounded-full bg-accent-cyan shadow-glow-cyan mb-4" />
+            <div className="text-sm">Start a conversation</div>
           </div>
         )}
         {messages.map((msg) => (

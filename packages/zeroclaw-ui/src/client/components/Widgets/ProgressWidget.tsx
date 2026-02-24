@@ -10,14 +10,14 @@ export function ProgressWidget({ widget }: ProgressWidgetProps) {
 
   return (
     <div className="mt-2">
-      {label && <div className="text-xs text-gray-400 mb-1">{label}</div>}
-      <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
+      {label && <div className="text-xs text-fg-muted mb-1">{label}</div>}
+      <div className="w-full h-2 bg-bg-elevated rounded-full overflow-hidden">
         <div
-          className="h-full bg-indigo-500 rounded-full transition-all duration-300"
+          className="h-full bg-accent-cyan rounded-full transition-all duration-300"
           style={{ width: `${Math.min(100, Math.max(0, value))}%` }}
         />
       </div>
-      <div className="text-xs text-gray-500 mt-0.5 text-right">{value}%</div>
+      <div className="text-[10px] font-mono text-fg-subtle mt-0.5 text-right">{value}%</div>
     </div>
   )
 }

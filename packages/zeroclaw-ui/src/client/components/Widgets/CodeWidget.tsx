@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Copy, Check } from 'lucide-react'
 import type { WidgetData } from '../../lib/types'
 
 export interface CodeWidgetProps {
@@ -21,17 +22,18 @@ export function CodeWidget({ widget }: CodeWidgetProps) {
   }
 
   return (
-    <div className="mt-2 rounded-lg bg-gray-900 border border-gray-700 overflow-hidden">
-      <div className="flex items-center justify-between px-3 py-1.5 bg-gray-800 border-b border-gray-700">
-        {language && <span className="text-xs text-gray-500">{language}</span>}
+    <div className="mt-2 rounded-lg bg-bg-base border border-fg-subtle/20 overflow-hidden">
+      <div className="flex items-center justify-between px-3 py-1.5 bg-bg-raised border-b border-fg-subtle/15">
+        {language && <span className="text-[10px] font-mono text-fg-subtle uppercase">{language}</span>}
         <button
           onClick={handleCopy}
-          className="text-xs text-gray-400 hover:text-gray-200 transition-colors"
+          className="text-fg-muted hover:text-accent-cyan transition-colors flex items-center gap-1"
         >
-          {copied ? 'Copied!' : 'Copy'}
+          {copied ? <Check size={12} /> : <Copy size={12} />}
+          <span className="text-[10px] font-mono">{copied ? 'Copied' : 'Copy'}</span>
         </button>
       </div>
-      <pre className="p-3 overflow-x-auto text-sm text-gray-200">
+      <pre className="p-3 overflow-x-auto text-sm font-mono text-fg-secondary">
         <code>{code}</code>
       </pre>
     </div>

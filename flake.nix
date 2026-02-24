@@ -46,10 +46,33 @@
           testToolDepends = (old.testToolDepends or []) ++ [ pkgs.nats-server ];
         });
 
+      # ZeroClaw web UI — React SPA + Hono server, built from packages/ workspace
+      zeroclawUiPkg = pkgs.buildNpmPackage {
+        pname = "zeroclaw-ui";
+        version = "0.1.0";
+        src = ./packages;
+
+        npmDepsHash = "sha256-zzn9KjPakn0hD5VflD2/Rv1wOvv6Wg/Iw49ykUJ3RjQ=";
+
+        buildPhase = ''
+          runHook preBuild
+          npm run build --workspace=zeroclaw-ui
+          runHook postBuild
+        '';
+
+        installPhase = ''
+          runHook preInstall
+          mkdir -p $out/dist
+          cp -r zeroclaw-ui/dist/client $out/dist/
+          cp -r zeroclaw-ui/dist/server $out/dist/
+          runHook postInstall
+        '';
+      };
+
       # Build a template as a NixOS microVM configuration
       mkTemplate = name: nixpkgs.lib.nixosSystem {
         inherit system;
-        specialArgs = { inherit self llm-agents zeroclaw; };
+        specialArgs = { inherit self llm-agents zeroclaw zeroclawUiPkg; };
         modules = [
           microvm.nixosModules.microvm
           ./templates/${name}/default.nix
@@ -83,6 +106,7 @@
       packages.${system} = {
         default = scapeAgentsPkg;
         scape-agents = scapeAgentsPkg;
+        zeroclaw-ui = zeroclawUiPkg;
 
         # MicroVM runners (what `nix build .#debug` produces)
         debug = self.nixosConfigurations.debug.config.microvm.declaredRunner;
