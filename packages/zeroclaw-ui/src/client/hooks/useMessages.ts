@@ -1,10 +1,11 @@
 import { useState, useCallback, useEffect } from 'react'
+import { flushSync } from 'react-dom'
+import { uuid } from '../lib/types'
 import type { ChatMessage, GatewayMessage } from '../lib/types'
 
 export function useMessages() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [loading, setLoading] = useState(true)
-
   // Load history from server on mount
   useEffect(() => {
     fetch('/api/messages')
@@ -18,7 +19,7 @@ export function useMessages() {
 
   const addUserMessage = useCallback((text: string) => {
     const msg: ChatMessage = {
-      id: crypto.randomUUID(),
+      id: uuid(),
       role: 'user',
       text,
       timestamp: new Date().toISOString(),
@@ -38,13 +39,12 @@ export function useMessages() {
   const handleGatewayMessage = useCallback((data: GatewayMessage) => {
     if (data.type !== 'chat') return
 
-    setMessages((prev) => {
-      const existing = prev.findIndex(
-        (m) => m.role === 'bot' && m.streaming && data.runId,
-      )
+    const update = (prev: ChatMessage[]): ChatMessage[] => {
+      const existing = data.runId
+        ? prev.findIndex((m) => m.id === data.runId)
+        : prev.findIndex((m) => m.role === 'bot' && m.streaming)
 
       if (existing !== -1 && data.state === 'streaming') {
-        // Update existing streaming message
         const updated = [...prev]
         updated[existing] = {
           ...updated[existing],
@@ -54,14 +54,12 @@ export function useMessages() {
       }
 
       if (existing !== -1 && data.state === 'final') {
-        // Finalize streaming message
         const updated = [...prev]
         updated[existing] = {
           ...updated[existing],
           text: data.text || '',
           streaming: false,
         }
-        // Persist final message
         fetch('/api/messages', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -71,16 +69,14 @@ export function useMessages() {
       }
 
       if (existing !== -1 && data.state === 'cancelled') {
-        // Remove cancelled streaming message
         return prev.filter((_, i) => i !== existing)
       }
 
       if (data.state === 'streaming') {
-        // New streaming message
         return [
           ...prev,
           {
-            id: data.runId || crypto.randomUUID(),
+            id: data.runId || uuid(),
             role: 'bot' as const,
             text: data.text || '',
             timestamp: new Date().toISOString(),
@@ -90,9 +86,8 @@ export function useMessages() {
       }
 
       if (data.state === 'final') {
-        // Single-shot final message (no prior streaming)
         const msg: ChatMessage = {
-          id: data.runId || crypto.randomUUID(),
+          id: data.runId || uuid(),
           role: 'bot',
           text: data.text || '',
           timestamp: new Date().toISOString(),
@@ -106,7 +101,14 @@ export function useMessages() {
       }
 
       return prev
-    })
+    }
+
+    // Force synchronous render for streaming so each chunk paints immediately
+    if (data.state === 'streaming' || data.state === 'final') {
+      flushSync(() => setMessages(update))
+    } else {
+      setMessages(update)
+    }
   }, [])
 
   return { messages, loading, addUserMessage, handleGatewayMessage }
