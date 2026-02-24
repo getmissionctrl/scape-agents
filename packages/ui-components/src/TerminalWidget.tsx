@@ -192,9 +192,9 @@ export function TerminalWidget({
   return (
     <div
       className={className}
-      style={{ background: '#1A1B26', padding: 12, height: '100%' }}
+      style={{ background: '#1A1B26', padding: 12, height: '100%', display: 'flex', flexDirection: 'column' }}
     >
-      <div ref={termRef} data-testid="terminal-container" />
+      <div ref={termRef} data-testid="terminal-container" style={{ flex: 1 }} />
     </div>
   )
 }
