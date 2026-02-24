@@ -261,11 +261,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1771909379,
-        "narHash": "sha256-wr3JJwvV8f7hC0kFVm5vIT5f5ybZytwoflWTFBDq7M8=",
+        "lastModified": 1771915079,
+        "narHash": "sha256-WsVKy15hmRtN9m01FPvrh8NbfLYvXOKnNnTr/62V3OU=",
         "owner": "getmissionctrl",
         "repo": "zeroclaw",
-        "rev": "9d6d61805e0fe8c92ad01e8342e5a8152ce82a4e",
+        "rev": "2b03c52dd435e9df5a15f84d63f6334de2548192",
         "type": "github"
       },
       "original": {
