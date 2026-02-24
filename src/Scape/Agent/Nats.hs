@@ -166,6 +166,7 @@ observationSubject prefix obs = case obs of
   ObsMetrics _         -> (prefix <> ".metrics", "metrics")
   ObsFileContent _     -> (prefix <> ".file.content", "file.content")
   ObsFileWritten _     -> (prefix <> ".file.written", "file.written")
+  ObsDirListing _      -> (prefix <> ".dir.listing", "dir.listing")
   ObsSecretsInjected _ -> (prefix <> ".secrets", "secrets")
   ObsShuttingDown      -> (prefix <> ".shutdown", "shutdown")
 

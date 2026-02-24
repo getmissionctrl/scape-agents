@@ -16,6 +16,8 @@ module Scape.Protocol.Observation
   , MetricsEvent (..)
   , FileContentEvent (..)
   , FileWrittenEvent (..)
+  , DirListingEvent (..)
+  , DirEntry (..)
   , SecretsInjectedEvent (..)
 
     -- * Channel type
@@ -43,6 +45,7 @@ data Observation
   | ObsMetrics !MetricsEvent
   | ObsFileContent !FileContentEvent
   | ObsFileWritten !FileWrittenEvent
+  | ObsDirListing !DirListingEvent
   | ObsSecretsInjected !SecretsInjectedEvent
   | ObsShuttingDown
   deriving stock (Generic, Show, Eq)
@@ -118,6 +121,24 @@ data FileContentEvent = FileContentEvent
 data FileWrittenEvent = FileWrittenEvent
   { path :: !FilePath
   , size :: !Int            -- ^ Bytes written
+  }
+  deriving stock (Generic, Show, Eq)
+  deriving anyclass (FromJSON, ToJSON)
+
+-- | Directory listing result
+data DirListingEvent = DirListingEvent
+  { path    :: !FilePath
+  , entries :: ![DirEntry]
+  }
+  deriving stock (Generic, Show, Eq)
+  deriving anyclass (FromJSON, ToJSON)
+
+-- | A single directory entry
+data DirEntry = DirEntry
+  { name    :: !Text
+  , isDir   :: !Bool
+  , size    :: !Int
+  , modTime :: !UTCTime
   }
   deriving stock (Generic, Show, Eq)
   deriving anyclass (FromJSON, ToJSON)

@@ -24,9 +24,9 @@ import Data.Time (UTCTime, getCurrentTime)
 import Katip (Severity(..), LogStr, LogEnv, logStr)
 import Options.Applicative hiding (command)
 import Prelude hiding (id)
-import System.Directory (createDirectoryIfMissing, doesFileExist)
+import System.Directory (createDirectoryIfMissing, doesDirectoryExist, doesFileExist, getModificationTime, listDirectory)
 import System.FilePath (takeDirectory, (</>))
-import System.Posix.Files (setFileMode)
+import System.Posix.Files (getFileStatus, fileSize, setFileMode)
 
 import Scape.Agent.Executor
   ( executeCommandWithCallback
@@ -55,6 +55,8 @@ import Scape.Protocol.Observation
   , Observation(..)
   , FileContentEvent(..)
   , FileWrittenEvent(..)
+  , DirListingEvent(..)
+  , DirEntry(..)
   , SecretsInjectedEvent(..)
   )
 import qualified Scape.Protocol.Control as Ctrl
@@ -288,6 +290,7 @@ handleCommand logEnv publish reannounce cmd = do
       logWarnIO logEnv ns $ logT $ "Cancel not implemented for: " <> showT cmdId
     CmdWriteFile req -> handleWriteFile logEnv publish req
     CmdReadFile req -> handleReadFile logEnv publish req
+    CmdListDir req -> handleListDir logEnv publish req
     CmdInjectSecrets req -> handleInjectSecrets logEnv publish req
     CmdPing -> do
       logInfoIO logEnv ns $ logT "Ping received, re-announcing Ready"
@@ -304,6 +307,7 @@ cmdSummary = \case
   CmdCancel cmdId -> "Cancel: " <> showT cmdId
   CmdWriteFile req -> "WriteFile: " <> T.pack req.path
   CmdReadFile req -> "ReadFile: " <> T.pack req.path
+  CmdListDir req -> "ListDir: " <> T.pack req.path
   CmdInjectSecrets _ -> "InjectSecrets"
   CmdPing -> "Ping"
   CmdShutdown -> "Shutdown"
@@ -396,6 +400,38 @@ handleReadFile logEnv publish req = do
         }
   where
     ns = Namespace ["file"]
+
+-- | Handle list directory command
+--
+-- Lists directory contents and returns entries with metadata.
+handleListDir :: LogEnv -> ObservationPublisher -> PC.ListDirRequest -> IO ()
+handleListDir logEnv publish req = do
+  logInfoIO logEnv ns $ logT $ "Listing directory: " <> T.pack req.path
+  exists <- doesDirectoryExist req.path
+  if not exists
+    then publishError publish Nothing $ "Directory not found: " <> T.pack req.path
+    else do
+      contents <- listDirectory req.path
+      entries <- mapM (mkEntry req.path) contents
+      publish $ ObsDirListing DirListingEvent
+        { path = req.path
+        , entries = entries
+        }
+  where
+    ns = Namespace ["file"]
+    mkEntry dirPath entryName = do
+      let fullPath = dirPath </> entryName
+      isDirectory <- doesDirectoryExist fullPath
+      entrySize <- if isDirectory
+        then pure 0
+        else fromIntegral . fileSize <$> getFileStatus fullPath
+      modTime <- getModificationTime fullPath
+      pure DirEntry
+        { name = T.pack entryName
+        , isDir = isDirectory
+        , size = entrySize
+        , modTime = modTime
+        }
 
 -- | Handle inject secrets command
 --

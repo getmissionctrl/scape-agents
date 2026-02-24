@@ -12,6 +12,7 @@ module Scape.Protocol.Command
   , ExecRequest (..)
   , WriteFileRequest (..)
   , ReadFileRequest (..)
+  , ListDirRequest (..)
   , SecretsRequest (..)
 
     -- * Identifiers (re-exported from Types)
@@ -37,6 +38,7 @@ data Command
   | CmdCancel !CommandId
   | CmdWriteFile !WriteFileRequest
   | CmdReadFile !ReadFileRequest
+  | CmdListDir !ListDirRequest
   | CmdInjectSecrets !SecretsRequest
   | CmdPing
   | CmdShutdown
@@ -69,6 +71,13 @@ data WriteFileRequest = WriteFileRequest
 data ReadFileRequest = ReadFileRequest
   { path     :: !FilePath
   , maxBytes :: !(Maybe Int)   -- ^ Limit bytes read
+  }
+  deriving stock (Generic, Show, Eq)
+  deriving anyclass (FromJSON, ToJSON)
+
+-- | List directory contents
+data ListDirRequest = ListDirRequest
+  { path :: !FilePath
   }
   deriving stock (Generic, Show, Eq)
   deriving anyclass (FromJSON, ToJSON)
