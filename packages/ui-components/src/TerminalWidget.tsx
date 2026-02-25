@@ -4,6 +4,7 @@ import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import { WebglAddon } from '@xterm/addon-webgl'
 import { Unicode11Addon } from '@xterm/addon-unicode11'
+import '@xterm/xterm/css/xterm.css'
 import type { ConnectionState } from './types'
 
 export interface TerminalWidgetProps {
@@ -194,9 +195,7 @@ export function TerminalWidget({
       className={className}
       style={{ background: '#1A1B26', padding: 12, height: '100%', display: 'flex', flexDirection: 'column' }}
     >
-      <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
-        <div ref={termRef} data-testid="terminal-container" style={{ position: 'absolute', inset: 0 }} />
-      </div>
+      <div ref={termRef} data-testid="terminal-container" style={{ flex: 1 }} />
     </div>
   )
 }
