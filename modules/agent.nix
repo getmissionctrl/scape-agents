@@ -56,6 +56,12 @@ in
       default = null;
       description = "Instance ID override (for testing without MMDS)";
     };
+
+    filesRoot = mkOption {
+      type = types.nullOr types.str;
+      default = null;
+      description = "Root directory for file browser access (null = unrestricted)";
+    };
   };
 
   config = mkIf cfg.enable {
@@ -78,6 +84,8 @@ in
           "--nats-creds ${cfg.natsCreds}"
         ] ++ optionals (cfg.instanceId != null) [
           "--instance-id ${cfg.instanceId}"
+        ] ++ optionals (cfg.filesRoot != null) [
+          "--files-root ${cfg.filesRoot}"
         ]);
         Restart = "always";
         RestartSec = "1s";

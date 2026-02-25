@@ -11,6 +11,9 @@
     self.nixosModules.base-vm
   ];
 
+  # Restrict file browser to zeroclaw data directory
+  services.scape.agent.filesRoot = "/home/operator/.zeroclaw";
+
   # --- Packages ---
   environment.systemPackages = [
     zeroclaw.packages.${pkgs.system}.default
