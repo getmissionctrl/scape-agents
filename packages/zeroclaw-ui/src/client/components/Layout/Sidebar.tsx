@@ -18,9 +18,8 @@ const navItems: { id: ViewMode; label: string; icon: ReactNode }[] = [
 export function Sidebar({ active, onNavigate, connected }: SidebarProps) {
   return (
     <nav className="flex flex-col w-14 bg-bg-raised border-r border-fg-subtle/20 items-center py-4 gap-1.5">
-      <div className="mb-3 flex items-center gap-1.5" title="ZeroClaw">
-        <span className="w-2 h-2 rounded-full bg-accent-cyan shadow-glow-cyan" />
-        <span className="text-[10px] font-mono font-medium text-fg-secondary tracking-wider">ZC</span>
+      <div className="mb-3" title="thescape.ai">
+        <img src="/logo.svg" alt="thescape.ai" className="w-7 h-7" />
       </div>
       {navItems.map((item) => (
         <button
