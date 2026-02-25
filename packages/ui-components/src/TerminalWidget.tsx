@@ -143,7 +143,7 @@ export function TerminalWidget({
       // WebGL unavailable, DOM renderer used
     }
 
-    fitAddon.fit()
+    requestAnimationFrame(() => fitAddon.fit())
 
     terminalRef.current = terminal
     fitAddonRef.current = fitAddon
@@ -194,7 +194,9 @@ export function TerminalWidget({
       className={className}
       style={{ background: '#1A1B26', padding: 12, height: '100%', display: 'flex', flexDirection: 'column' }}
     >
-      <div ref={termRef} data-testid="terminal-container" style={{ flex: 1 }} />
+      <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
+        <div ref={termRef} data-testid="terminal-container" style={{ position: 'absolute', inset: 0 }} />
+      </div>
     </div>
   )
 }

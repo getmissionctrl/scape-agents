@@ -24,8 +24,9 @@ import Data.Time (UTCTime, getCurrentTime)
 import Katip (Severity(..), LogStr, LogEnv, logStr)
 import Options.Applicative hiding (command)
 import Prelude hiding (id)
-import System.Directory (createDirectoryIfMissing, doesDirectoryExist, doesFileExist, getModificationTime, listDirectory)
-import System.FilePath (takeDirectory, (</>))
+import Data.List (isPrefixOf)
+import System.Directory (canonicalizePath, createDirectoryIfMissing, doesDirectoryExist, doesFileExist, getModificationTime, listDirectory)
+import System.FilePath (takeDirectory, (</>), dropTrailingPathSeparator, addTrailingPathSeparator)
 import System.Posix.Files (getFileStatus, fileSize, setFileMode)
 
 import Scape.Agent.Executor
@@ -79,6 +80,7 @@ data Options = Options
   , optNatsUrl    :: !(Maybe String)  -- ^ Override NATS URL (for testing without MMDS)
   , optNatsCreds  :: !(Maybe FilePath)  -- ^ NATS credentials file (for local testing)
   , optInstanceId :: !(Maybe String)  -- ^ Instance ID (for local testing)
+  , optFilesRoot  :: !(Maybe FilePath)  -- ^ Root directory for file browser (restricts file access)
   }
 
 -- | Parser for command line options
@@ -117,6 +119,11 @@ optionsParser = Options
      <> metavar "ID"
      <> help "Instance ID (for local testing without MMDS)"
       ))
+  <*> optional (strOption
+      ( long "files-root"
+     <> metavar "PATH"
+     <> help "Root directory for file browser (restricts file access)"
+      ))
 
 -- | Parse severity from string
 severityReader :: ReadM Severity
@@ -143,6 +150,39 @@ showSeverity = \case
   CriticalS  -> "critical"
   AlertS     -> "alert"
   EmergencyS -> "emergency"
+
+-- | Resolve a requested path against an optional files root.
+-- When a root is configured, the requested path is made relative to it and
+-- canonicalized. Paths that escape the root via ".." are rejected.
+-- When no root is configured, the path is returned as-is (unrestricted).
+resolveFilePath :: Maybe FilePath -> FilePath -> IO (Either Text FilePath)
+resolveFilePath Nothing requestedPath = pure (Right requestedPath)
+resolveFilePath (Just root) requestedPath = do
+  let rawPath = dropTrailingPathSeparator root </> dropWhile (== '/') requestedPath
+  canonRoot <- canonicalizePath (dropTrailingPathSeparator root)
+  -- If the raw path doesn't exist yet (e.g. write), canonicalize the parent
+  exists <- doesFileExist rawPath
+  dirExists <- doesDirectoryExist rawPath
+  canonResolved <- if exists || dirExists
+    then canonicalizePath rawPath
+    else do
+      -- Canonicalize the parent directory and append the filename
+      let parent = takeDirectory rawPath
+      parentExists <- doesDirectoryExist parent
+      if parentExists
+        then do
+          canonParent <- canonicalizePath parent
+          let baseName = last (splitPath rawPath)
+          pure (canonParent </> baseName)
+        else pure rawPath  -- Will fail at actual file operation
+  let rootPrefix = addTrailingPathSeparator canonRoot
+  if canonResolved == canonRoot || rootPrefix `isPrefixOf` canonResolved
+    then pure (Right canonResolved)
+    else pure (Left $ "Path outside allowed root: " <> T.pack requestedPath)
+  where
+    splitPath p = case break (== '/') p of
+      (a, '/':rest) -> a : splitPath rest
+      (a, _) -> [a]
 
 -- | Program info
 opts :: ParserInfo Options
@@ -242,7 +282,7 @@ natsWithReconnect logEnv options cfg version startTime agentState = go cfg
       shutdownVar <- newEmptyMVar
       result <- race
         (runNatsAgent currentCfg version startTime (optPort options)
-           agentState (handleCommand logEnv) (takeMVar shutdownVar))
+           agentState (handleCommand logEnv (optFilesRoot options)) (takeMVar shutdownVar))
         (watchMMDS logEnv currentCfg.instanceId)
       case result of
         Left ()      -> pure ()  -- Normal shutdown
@@ -280,17 +320,17 @@ testNatsConfig url instId mCreds = NatsAgentConfig
 -- It dispatches to the appropriate handler based on command type.
 -- The publisher is passed through so handlers can send observations back.
 -- The reannounce callback is used to re-publish Ready after VM resume.
-handleCommand :: LogEnv -> ObservationPublisher -> IO () -> Command -> IO ()
-handleCommand logEnv publish reannounce cmd = do
+handleCommand :: LogEnv -> Maybe FilePath -> ObservationPublisher -> IO () -> Command -> IO ()
+handleCommand logEnv filesRoot publish reannounce cmd = do
   -- Log the received command
   logInfoIO logEnv ns $ logT $ "Received command: " <> cmdSummary cmd
   case cmd of
     CmdExec req -> handleExec logEnv publish req
     CmdCancel cmdId -> do
       logWarnIO logEnv ns $ logT $ "Cancel not implemented for: " <> showT cmdId
-    CmdWriteFile req -> handleWriteFile logEnv publish req
-    CmdReadFile req -> handleReadFile logEnv publish req
-    CmdListDir req -> handleListDir logEnv publish req
+    CmdWriteFile req -> handleWriteFile logEnv filesRoot publish req
+    CmdReadFile req -> handleReadFile logEnv filesRoot publish req
+    CmdListDir req -> handleListDir logEnv filesRoot publish req
     CmdInjectSecrets req -> handleInjectSecrets logEnv publish req
     CmdPing -> do
       logInfoIO logEnv ns $ logT "Ping received, re-announcing Ready"
@@ -359,64 +399,79 @@ handleExec logEnv publish req = do
 --
 -- Writes base64-decoded content to the specified path.
 -- Creates parent directories if needed.
-handleWriteFile :: LogEnv -> ObservationPublisher -> PC.WriteFileRequest -> IO ()
-handleWriteFile logEnv publish req = do
+-- When filesRoot is set, paths are resolved relative to the root.
+handleWriteFile :: LogEnv -> Maybe FilePath -> ObservationPublisher -> PC.WriteFileRequest -> IO ()
+handleWriteFile logEnv filesRoot publish req = do
   logInfoIO logEnv ns $ logT $ "Writing file: " <> T.pack req.path
-  case B64.decode (TE.encodeUtf8 req.content) of
-    Left err -> publishError publish Nothing $ "Base64 decode error: " <> T.pack err
-    Right bytes -> do
-      let dir = takeDirectory req.path
-      createDirectoryIfMissing True dir
-      BS.writeFile req.path bytes
-      case req.mode of
-        Just m -> setFileMode req.path (fromIntegral m)
-        Nothing -> pure ()
-      publish $ ObsFileWritten FileWrittenEvent
-        { path = req.path
-        , size = BS.length bytes
-        }
+  resolved <- resolveFilePath filesRoot req.path
+  case resolved of
+    Left err -> publishError publish Nothing err
+    Right actualPath ->
+      case B64.decode (TE.encodeUtf8 req.content) of
+        Left err -> publishError publish Nothing $ "Base64 decode error: " <> T.pack err
+        Right bytes -> do
+          let dir = takeDirectory actualPath
+          createDirectoryIfMissing True dir
+          BS.writeFile actualPath bytes
+          case req.mode of
+            Just m -> setFileMode actualPath (fromIntegral m)
+            Nothing -> pure ()
+          publish $ ObsFileWritten FileWrittenEvent
+            { path = req.path  -- Return the requested path, not resolved
+            , size = BS.length bytes
+            }
   where
     ns = Namespace ["file"]
 
 -- | Handle read file command
 --
 -- Reads file content and returns as base64-encoded observation.
-handleReadFile :: LogEnv -> ObservationPublisher -> PC.ReadFileRequest -> IO ()
-handleReadFile logEnv publish req = do
+-- When filesRoot is set, paths are resolved relative to the root.
+handleReadFile :: LogEnv -> Maybe FilePath -> ObservationPublisher -> PC.ReadFileRequest -> IO ()
+handleReadFile logEnv filesRoot publish req = do
   logInfoIO logEnv ns $ logT $ "Reading file: " <> T.pack req.path
-  exists <- doesFileExist req.path
-  if not exists
-    then publishError publish Nothing $ "File not found: " <> T.pack req.path
-    else do
-      bytes <- BS.readFile req.path
-      let limited = case req.maxBytes of
-            Just n  -> BS.take n bytes
-            Nothing -> bytes
-          encoded = TE.decodeUtf8 $ B64.encode limited
-      publish $ ObsFileContent FileContentEvent
-        { path = req.path
-        , content = encoded
-        , size = BS.length limited
-        }
+  resolved <- resolveFilePath filesRoot req.path
+  case resolved of
+    Left err -> publishError publish Nothing err
+    Right actualPath -> do
+      exists <- doesFileExist actualPath
+      if not exists
+        then publishError publish Nothing $ "File not found: " <> T.pack req.path
+        else do
+          bytes <- BS.readFile actualPath
+          let limited = case req.maxBytes of
+                Just n  -> BS.take n bytes
+                Nothing -> bytes
+              encoded = TE.decodeUtf8 $ B64.encode limited
+          publish $ ObsFileContent FileContentEvent
+            { path = req.path  -- Return the requested path, not resolved
+            , content = encoded
+            , size = BS.length limited
+            }
   where
     ns = Namespace ["file"]
 
 -- | Handle list directory command
 --
 -- Lists directory contents and returns entries with metadata.
-handleListDir :: LogEnv -> ObservationPublisher -> PC.ListDirRequest -> IO ()
-handleListDir logEnv publish req = do
+-- When filesRoot is set, paths are resolved relative to the root.
+handleListDir :: LogEnv -> Maybe FilePath -> ObservationPublisher -> PC.ListDirRequest -> IO ()
+handleListDir logEnv filesRoot publish req = do
   logInfoIO logEnv ns $ logT $ "Listing directory: " <> T.pack req.path
-  exists <- doesDirectoryExist req.path
-  if not exists
-    then publishError publish Nothing $ "Directory not found: " <> T.pack req.path
-    else do
-      contents <- listDirectory req.path
-      entries <- mapM (mkEntry req.path) contents
-      publish $ ObsDirListing DirListingEvent
-        { path = req.path
-        , entries = entries
-        }
+  resolved <- resolveFilePath filesRoot req.path
+  case resolved of
+    Left err -> publishError publish Nothing err
+    Right actualPath -> do
+      exists <- doesDirectoryExist actualPath
+      if not exists
+        then publishError publish Nothing $ "Directory not found: " <> T.pack req.path
+        else do
+          contents <- listDirectory actualPath
+          entries <- mapM (mkEntry actualPath) contents
+          publish $ ObsDirListing DirListingEvent
+            { path = req.path  -- Return the requested path, not resolved
+            , entries = entries
+            }
   where
     ns = Namespace ["file"]
     mkEntry dirPath entryName = do
