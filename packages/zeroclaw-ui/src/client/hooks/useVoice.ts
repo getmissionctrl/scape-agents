@@ -57,7 +57,7 @@ export function useVoice({ onTranscript, lang = 'en-US' }: UseVoiceOptions) {
 
   const playTTS = useCallback(async (text: string) => {
     try {
-      const res = await fetch('/api/tts', {
+      const res = await fetch('/ui-api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text }),

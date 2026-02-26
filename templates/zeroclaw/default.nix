@@ -153,15 +153,15 @@
   };
 
   # --- ZeroClaw Web UI ---
-  # Serves the React SPA on port 5000 and proxies chat WS to the gateway.
-  # The UI package is built and copied into the Nix store at build time.
+  # Serves the React chat SPA on port 5001 and proxies chat WS to the WebChannel.
+  # Caddy (port 5000) sits in front and routes admin traffic to the gateway.
   systemd.services.zeroclaw-ui = {
     description = "ZeroClaw Web UI";
     wantedBy = [ "multi-user.target" ];
     after = [ "network-online.target" "zeroclaw-daemon.service" ];
     wants = [ "network-online.target" "zeroclaw-daemon.service" ];
     environment = {
-      PORT = "5000";
+      PORT = "5001";
       GATEWAY_URL = "ws://127.0.0.1:5100";
       NODE_ENV = "production";
       DATA_DIR = "/home/operator/.zeroclaw-ui";
@@ -176,6 +176,81 @@
     };
   };
 
+  # --- Caddy reverse proxy ---
+  # Routes admin dashboard (/_app/*, /api/*, /ws/*, /pair, /health) to the
+  # zeroclaw gateway (port 42617) and everything else to zeroclaw-ui (port 5001).
+  services.caddy = {
+    enable = true;
+    virtualHosts.":5000".extraConfig = ''
+      # Admin dashboard SPA (embedded in gateway binary)
+      handle /_app/* {
+        reverse_proxy localhost:42617
+      }
+
+      # Gateway REST API
+      handle /api/* {
+        reverse_proxy localhost:42617
+      }
+
+      # Gateway WebSocket chat
+      handle /ws/* {
+        reverse_proxy localhost:42617
+      }
+
+      # Gateway pairing endpoint
+      handle /pair {
+        reverse_proxy localhost:42617
+      }
+
+      # Gateway health / metrics
+      handle /health {
+        reverse_proxy localhost:42617
+      }
+      handle /metrics {
+        reverse_proxy localhost:42617
+      }
+
+      # OpenAI-compatible API
+      handle /v1/* {
+        reverse_proxy localhost:42617
+      }
+
+      # Everything else → chat UI
+      handle {
+        reverse_proxy localhost:5001
+      }
+    '';
+  };
+
+  # --- ZeroClaw config ---
+  # Seed a minimal config.toml that enables the WebChannel (port 5100) so
+  # zeroclaw-ui can proxy browser WebSocket connections into the agent loop.
+  # The gateway runs on its default port (42617) and serves the admin dashboard.
+  systemd.services.zeroclaw-config = {
+    description = "Seed ZeroClaw config";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "home-operator.mount" "fix-operator-home.service" ];
+    requires = [ "home-operator.mount" ];
+    serviceConfig = {
+      Type = "oneshot";
+      User = "operator";
+      Group = "operator";
+      RemainAfterExit = true;
+    };
+    script = ''
+      mkdir -p /home/operator/.zeroclaw
+      # Only seed if no config exists yet (don't overwrite user edits)
+      if [ ! -f /home/operator/.zeroclaw/config.toml ]; then
+        cat > /home/operator/.zeroclaw/config.toml << 'TOML'
+[channels.web]
+port = 5100
+bind = "127.0.0.1"
+stream_mode = "partial"
+TOML
+      fi
+    '';
+  };
+
   # --- ZeroClaw daemon service ---
   # Runs as operator but managed as a system service so it can depend on
   # home-operator.mount (user services can't depend on system mounts).
@@ -185,8 +260,8 @@
     description = "ZeroClaw Daemon";
     wantedBy = [ "multi-user.target" ];
     wants = [ "network-online.target" ];
-    after = [ "network-online.target" "home-operator.mount" "fix-operator-home.service" "xvfb.service" ];
-    requires = [ "home-operator.mount" ];
+    after = [ "network-online.target" "home-operator.mount" "fix-operator-home.service" "xvfb.service" "zeroclaw-config.service" ];
+    requires = [ "home-operator.mount" "zeroclaw-config.service" ];
     environment.DISPLAY = ":99";
     path = [ "/run/current-system/sw" ];
     serviceConfig = {

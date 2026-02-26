@@ -17,20 +17,20 @@ const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app })
 
 // --- REST API ---
 
-app.get('/api/config', (c) => c.json(publicConfig))
+app.get('/ui-api/config', (c) => c.json(publicConfig))
 
-app.get('/api/messages', (c) => {
+app.get('/ui-api/messages', (c) => {
   const limit = parseInt(c.req.query('limit') || '200', 10)
   return c.json(getMessages(limit))
 })
 
-app.post('/api/messages', async (c) => {
+app.post('/ui-api/messages', async (c) => {
   const body = await c.req.json<{ role: 'user' | 'bot'; text: string }>()
   const msg = saveMessage(body)
   return c.json(msg, 201)
 })
 
-app.post('/api/tts', async (c) => {
+app.post('/ui-api/tts', async (c) => {
   if (!config.enableVoice) {
     return c.json({ error: 'Voice disabled' }, 403)
   }
@@ -50,7 +50,7 @@ app.post('/api/tts', async (c) => {
 const gatewayHandler = createGatewayProxy(config.gatewayUrl)
 
 app.get(
-  '/api/gateway',
+  '/ui-api/gateway',
   upgradeWebSocket(() => gatewayHandler()),
 )
 

@@ -8,7 +8,7 @@ export function useMessages() {
   const [loading, setLoading] = useState(true)
   // Load history from server on mount
   useEffect(() => {
-    fetch('/api/messages')
+    fetch('/ui-api/messages')
       .then((r) => r.json())
       .then((msgs: ChatMessage[]) => {
         setMessages(msgs)
@@ -27,7 +27,7 @@ export function useMessages() {
     setMessages((prev) => [...prev, msg])
 
     // Persist to server
-    fetch('/api/messages', {
+    fetch('/ui-api/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ role: 'user', text }),
@@ -60,7 +60,7 @@ export function useMessages() {
           text: data.text || '',
           streaming: false,
         }
-        fetch('/api/messages', {
+        fetch('/ui-api/messages', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ role: 'bot', text: data.text || '' }),
@@ -92,7 +92,7 @@ export function useMessages() {
           text: data.text || '',
           timestamp: new Date().toISOString(),
         }
-        fetch('/api/messages', {
+        fetch('/ui-api/messages', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ role: 'bot', text: data.text || '' }),

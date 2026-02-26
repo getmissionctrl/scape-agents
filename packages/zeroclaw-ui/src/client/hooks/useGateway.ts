@@ -18,7 +18,7 @@ export function useGateway(options?: UseGatewayOptions) {
     if (unmountedRef.current) return
 
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const wsUrl = `${proto}//${location.host}/api/gateway`
+    const wsUrl = `${proto}//${location.host}/ui-api/gateway`
 
     const ws = new WebSocket(wsUrl)
     wsRef.current = ws
