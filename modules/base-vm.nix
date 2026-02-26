@@ -106,6 +106,72 @@
     enable = true;
   };
 
+  # Journal log shipping to Loki via Promtail
+  # Fetches instance ID from MMDS at boot, generates Promtail config,
+  # and ships journal logs to Loki on the host bridge.
+  systemd.services.scape-log-shipper = {
+    description = "Ship VM journal logs to Loki";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "network-online.target" ];
+    wants = [ "network-online.target" ];
+
+    path = with pkgs; [ curl jq iproute2 coreutils ];
+
+    serviceConfig = {
+      Type = "simple";
+      Restart = "always";
+      RestartSec = "10s";
+      SupplementaryGroups = [ "systemd-journal" ];
+      DynamicUser = true;
+      RuntimeDirectory = "scape-log-shipper";
+      StateDirectory = "scape-log-shipper";
+
+      ExecStartPre = pkgs.writeShellScript "gen-promtail-config" ''
+        # Wait for MMDS to become available and fetch instance ID
+        INSTANCE_ID=""
+        for i in $(seq 1 30); do
+          INSTANCE_ID=$(curl -sf -H 'Accept: application/json' \
+            http://169.254.169.254/scape \
+            | jq -r '.instanceId // empty' 2>/dev/null) \
+            && [ -n "$INSTANCE_ID" ] && break
+          sleep 2
+        done
+        INSTANCE_ID="''${INSTANCE_ID:-unknown}"
+
+        # Discover Loki host from default gateway (= bridge host)
+        GATEWAY=$(ip route | awk '/default/ {print $3; exit}')
+        LOKI_URL="http://''${GATEWAY:-10.99.0.1}:3100/loki/api/v1/push"
+
+        cat > /run/scape-log-shipper/config.yaml <<EOF
+        server:
+          http_listen_port: 0
+          grpc_listen_port: 0
+
+        positions:
+          filename: /var/lib/scape-log-shipper/positions.yaml
+
+        clients:
+          - url: $LOKI_URL
+
+        scrape_configs:
+          - job_name: vm-journal
+            journal:
+              max_age: 12h
+              labels:
+                job: vm-journal
+                instance_id: "$INSTANCE_ID"
+            relabel_configs:
+              - source_labels: ["__journal__systemd_unit"]
+                target_label: unit
+              - source_labels: ["__journal_priority"]
+                target_label: priority
+        EOF
+      '';
+
+      ExecStart = "${pkgs.grafana-loki}/bin/promtail -config.file=/run/scape-log-shipper/config.yaml";
+    };
+  };
+
   # System basics
   system.stateVersion = "24.05";
   i18n.defaultLocale = "C.UTF-8";
