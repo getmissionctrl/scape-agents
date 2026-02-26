@@ -183,7 +183,8 @@
     enable = true;
     virtualHosts.":5000".extraConfig = ''
       # Admin dashboard SPA (embedded in gateway binary)
-      handle /_app/* {
+      @admin path /_app /_app/*
+      handle @admin {
         reverse_proxy localhost:42617
       }
 
