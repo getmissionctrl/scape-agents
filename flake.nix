@@ -28,9 +28,14 @@
       url = "git+file:///home/ben/dev/skills";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    home-manager = {
+      url = "github:nix-community/home-manager";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, natskell, microvm, llm-agents, zeroclaw, skills, ... }:
+  outputs = { self, nixpkgs, natskell, microvm, llm-agents, zeroclaw, skills, home-manager, ... }:
     let
       system = "x86_64-linux";
       pkgs = import nixpkgs { inherit system; };
@@ -80,6 +85,11 @@
         specialArgs = { inherit self llm-agents zeroclaw zeroclawUiPkg skills; };
         modules = [
           microvm.nixosModules.microvm
+          home-manager.nixosModules.home-manager
+          {
+            home-manager.useGlobalPkgs = true;
+            home-manager.useUserPackages = true;
+          }
           ./templates/${name}/default.nix
         ];
       };

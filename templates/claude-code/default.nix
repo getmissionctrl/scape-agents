@@ -2,8 +2,16 @@
 #
 # Terminal-based AI coding assistant. User connects via the
 # WebSocket terminal and runs Claude Code interactively.
-{ self, pkgs, llm-agents, skills, ... }:
+{ self, pkgs, lib, llm-agents, skills, ... }:
 
+let
+  globalSkills = skills.packages.${pkgs.system}.global-skills;
+
+  # Build skill symlinks for ~/.claude/skills/
+  skillFiles = lib.mapAttrs'
+    (name: _: lib.nameValuePair ".claude/skills/${name}" { source = "${globalSkills}/${name}"; })
+    (builtins.readDir globalSkills);
+in
 {
   imports = [
     self.nixosModules.base-vm
@@ -16,13 +24,11 @@
     skills.packages.${pkgs.system}.skill-deps
   ];
 
-  # Nix-managed skills — symlinked into Claude's skills directory
-  environment.etc."skel/.claude/skills/research".source =
-    "${skills.packages.${pkgs.system}.global-skills}/research";
-  environment.etc."skel/.claude/skills/fabric".source =
-    "${skills.packages.${pkgs.system}.global-skills}/fabric";
-  environment.etc."skel/.claude/skills/pdf-manipulation".source =
-    "${skills.packages.${pkgs.system}.global-skills}/pdf-manipulation";
+  # Nix-managed skills via Home Manager for operator user
+  home-manager.users.operator = {
+    home.stateVersion = "24.11";
+    home.file = skillFiles;
+  };
 
   # More resources for AI workloads
   microvm.mem = 16384;
