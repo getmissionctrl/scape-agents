@@ -352,11 +352,11 @@
         "rev": "95f7c933c1642e96f1f22bada77a05879673f9d2",
         "revCount": 10,
         "type": "git",
-        "url": "file:///home/ben/dev/skills"
+        "url": "ssh://git@github.com/getmissionctrl/skills"
       },
       "original": {
         "type": "git",
-        "url": "file:///home/ben/dev/skills"
+        "url": "ssh://git@github.com/getmissionctrl/skills"
       }
     },
     "spectrum": {

@@ -25,7 +25,7 @@
     };
 
     skills = {
-      url = "git+file:///home/ben/dev/skills";
+      url = "git+ssh://git@github.com/getmissionctrl/skills";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
