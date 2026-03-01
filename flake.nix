@@ -85,11 +85,6 @@
         specialArgs = { inherit self llm-agents zeroclaw zeroclawUiPkg skills; };
         modules = [
           microvm.nixosModules.microvm
-          home-manager.nixosModules.home-manager
-          {
-            home-manager.useGlobalPkgs = true;
-            home-manager.useUserPackages = true;
-          }
           ./templates/${name}/default.nix
         ];
       };

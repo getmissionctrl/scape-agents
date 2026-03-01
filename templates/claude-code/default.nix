@@ -6,11 +6,6 @@
 
 let
   globalSkills = skills.packages.${pkgs.system}.global-skills;
-
-  # Build skill symlinks for ~/.claude/skills/
-  skillFiles = lib.mapAttrs'
-    (name: _: lib.nameValuePair ".claude/skills/${name}" { source = "${globalSkills}/${name}"; })
-    (builtins.readDir globalSkills);
 in
 {
   imports = [
@@ -24,16 +19,34 @@ in
     skills.packages.${pkgs.system}.skill-deps
   ];
 
-  # Nix-managed skills via Home Manager for operator user
-  home-manager.users.operator = {
-    home.stateVersion = "24.11";
-    home.file = skillFiles;
-  };
-
-  # HM activation must run after the persistent home volume is mounted
-  systemd.services."home-manager-operator" = {
+  # Symlink Nix-managed skills into operator's Claude config
+  # Uses a systemd service because /nix/store is read-only erofs in the
+  # microVM, so Home Manager activation fails. Skills docs are already
+  # in the store image — we just symlink them into the home volume.
+  systemd.services.claude-skills = {
+    description = "Symlink Nix-managed skills into operator Claude config";
+    wantedBy = [ "multi-user.target" ];
     after = [ "home-operator.mount" "fix-operator-home.service" ];
     wants = [ "home-operator.mount" ];
+    serviceConfig = {
+      Type = "oneshot";
+      User = "operator";
+      Group = "operator";
+      RemainAfterExit = true;
+    };
+    script = ''
+      mkdir -p /home/operator/.claude/skills
+      for skill in ${globalSkills}/*; do
+        name=$(basename "$skill")
+        target="/home/operator/.claude/skills/$name"
+        if [ -L "$target" ]; then
+          rm "$target"
+        fi
+        if [ ! -e "$target" ]; then
+          ln -s "$skill" "$target"
+        fi
+      done
+    '';
   };
 
   # SSH for debugging
