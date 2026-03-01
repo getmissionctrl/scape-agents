@@ -30,6 +30,12 @@ in
     home.file = skillFiles;
   };
 
+  # HM activation must run after the persistent home volume is mounted
+  systemd.services."home-manager-operator" = {
+    after = [ "home-operator.mount" "fix-operator-home.service" ];
+    wants = [ "home-operator.mount" ];
+  };
+
   # More resources for AI workloads
   microvm.mem = 16384;
   microvm.vcpu = 4;
