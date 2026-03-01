@@ -36,6 +36,18 @@ in
     wants = [ "home-operator.mount" ];
   };
 
+  # SSH for debugging
+  services.openssh = {
+    enable = true;
+    settings = {
+      PermitRootLogin = "yes";
+      PasswordAuthentication = false;
+    };
+  };
+  users.users.root.openssh.authorizedKeys.keys = [
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJI4iaVjJcoj4La4dcWYDRyjlyDADrL3kbZ9Eux6I6s2 ben@scape"
+  ];
+
   # More resources for AI workloads
   microvm.mem = 16384;
   microvm.vcpu = 4;
