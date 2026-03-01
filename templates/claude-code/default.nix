@@ -61,13 +61,16 @@ in
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJI4iaVjJcoj4La4dcWYDRyjlyDADrL3kbZ9Eux6I6s2 ben@scape"
   ];
 
-  # More resources for AI workloads
-  microvm.mem = 16384;
+  # Writable overlay on /nix/store so nix run/nix shell work in-instance
+  microvm.writableStoreOverlay = "/nix/.rw-store";
+
+  # Resources for AI workloads
+  microvm.mem = 8192;
   microvm.vcpu = 4;
 
   # Template metadata
   scape.template.claude-code = {
-    resources.memory = 16384;
+    resources.memory = 8192;
     resources.cpu = 400;
     egress = "llm-providers";
   };
