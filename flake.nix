@@ -18,24 +18,9 @@
       url = "github:getmissionctrl/llm-agents.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-
-    zeroclaw = {
-      url = "github:getmissionctrl/zeroclaw";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    skills = {
-      url = "git+ssh://git@github.com/getmissionctrl/skills";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    home-manager = {
-      url = "github:nix-community/home-manager";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 
-  outputs = { self, nixpkgs, natskell, microvm, llm-agents, zeroclaw, skills, home-manager, ... }:
+  outputs = { self, nixpkgs, natskell, microvm, llm-agents, ... }:
     let
       system = "x86_64-linux";
       pkgs = import nixpkgs { inherit system; };
@@ -82,7 +67,7 @@
       # Build a template as a NixOS microVM configuration
       mkTemplate = name: nixpkgs.lib.nixosSystem {
         inherit system;
-        specialArgs = { inherit self llm-agents zeroclaw zeroclawUiPkg skills; };
+        specialArgs = { inherit self llm-agents; };
         modules = [
           microvm.nixosModules.microvm
           ./templates/${name}/default.nix
@@ -108,9 +93,7 @@
         debug = mkTemplate "debug";
         python-sandbox = mkTemplate "python-sandbox";
         duckdb-analyst = mkTemplate "duckdb-analyst";
-        claude-code = mkTemplate "claude-code";
         openclaw = mkTemplate "openclaw";
-        zeroclaw = mkTemplate "zeroclaw";
       };
 
       packages.${system} = {
@@ -122,9 +105,7 @@
         debug = self.nixosConfigurations.debug.config.microvm.declaredRunner;
         python-sandbox = self.nixosConfigurations.python-sandbox.config.microvm.declaredRunner;
         duckdb-analyst = self.nixosConfigurations.duckdb-analyst.config.microvm.declaredRunner;
-        claude-code = self.nixosConfigurations.claude-code.config.microvm.declaredRunner;
         openclaw = self.nixosConfigurations.openclaw.config.microvm.declaredRunner;
-        zeroclaw = self.nixosConfigurations.zeroclaw.config.microvm.declaredRunner;
       };
 
       # Template flake outputs for `nix flake init`
@@ -141,17 +122,9 @@
           path = ./templates/debug;
           description = "Debug template with SSH and verbose logging";
         };
-        claude-code = {
-          path = ./templates/claude-code;
-          description = "Claude Code terminal-based AI agent";
-        };
         openclaw = {
           path = ./templates/openclaw;
           description = "OpenClaw AI assistant with gateway web service";
-        };
-        zeroclaw = {
-          path = ./templates/zeroclaw;
-          description = "ZeroClaw AI assistant with gateway web service";
         };
       };
 

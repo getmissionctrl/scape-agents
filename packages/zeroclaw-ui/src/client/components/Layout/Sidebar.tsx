@@ -1,4 +1,4 @@
-import { MessageSquare, Monitor, TerminalSquare } from 'lucide-react'
+import { MessageSquare, Monitor, Settings, TerminalSquare } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 export type ViewMode = 'chat' | 'desktop' | 'terminal'
@@ -35,7 +35,14 @@ export function Sidebar({ active, onNavigate, connected }: SidebarProps) {
           {item.icon}
         </button>
       ))}
-      <div className="mt-auto">
+      <div className="mt-auto flex flex-col items-center gap-1.5">
+        <a
+          href="/admin"
+          title="Admin"
+          className="w-10 h-10 rounded-lg flex items-center justify-center transition-colors text-fg-muted hover:bg-bg-elevated hover:text-fg-primary"
+        >
+          <Settings size={18} />
+        </a>
         <div
           title={connected ? 'Connected' : 'Disconnected'}
           className={`w-2.5 h-2.5 rounded-full transition-colors ${

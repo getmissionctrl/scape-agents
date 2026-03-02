@@ -1,0 +1,2283 @@
+================================================
+FILE: README.md
+================================================
+<p align="center">
+  <img src="public/apple-touch-icon.png" alt="ClawTime" width="120">
+</p>
+
+<h1 align="center">ClawTime</h1>
+
+<p align="center">
+  A private, self-hosted web interface for your OpenClaw AI agent.<br>
+  Voice conversations, animated avatars, end-to-end encryption.
+</p>
+
+<p align="center">
+  <img src="public/screenshot.jpg" alt="ClawTime Screenshot" width="700">
+</p>
+
+## Overview
+
+ClawTime is a webchat interface that connects **directly to your local OpenClaw agent**. No cloud services, no third-party servers — just you and your AI.
+
+Unlike hosted chatbots where your conversations flow through corporate servers, ClawTime keeps everything on your own hardware. Your messages, history, and credentials never leave your machine.
+
+## Motivation
+
+Most AI chat interfaces are either:
+
+- **Cloud-hosted** — your data goes to someone else's servers
+- **Text-only** — no voice, no visual feedback, feels robotic
+- **Generic** — same UI for everyone, no personality
+
+ClawTime solves all three:
+
+- **100% local** — direct connection to your self-hosted agent
+- **Multimodal** — voice input, spoken responses, animated avatar
+- **Customizable** — your agent can modify its own interface
+
+## Key Features
+
+### 🏠 Private by Design
+
+- Direct WebSocket connection to your OpenClaw gateway
+- All data stored locally (`~/.clawtime/`)
+- No analytics, no tracking, no data collection
+- E2E encryption (ECDH P-256 + AES-256-GCM)
+
+### 🎤 Voice Conversations
+
+- Tap the avatar to start talking
+- Browser-based speech recognition
+- Server-side TTS via `edge-tts` (no API keys needed)
+- Barge-in support — interrupt anytime
+
+### 🦞 Animated 3D Avatar
+
+A voxel-style 3D character that reflects your agent's state:
+
+- **Idle** — gentle breathing, occasional blinks
+- **Thinking** — looking around, processing
+- **Working** — typing on laptop (extended tasks)
+- **Talking** — animated mouth, expressive movement
+- **Listening** — attentive posture (voice mode)
+- **Happy / Error / Sleeping** — emotional states
+
+Fully customizable — create avatars that match your agent's personality.
+
+### 🔐 Passwordless Authentication
+
+- WebAuthn passkeys (Face ID, fingerprint, security key)
+- No passwords to remember or leak
+- One-time setup token for first registration
+
+### 🛠️ Agent-Modifiable
+
+Your AI agent has full access to the codebase and can:
+
+- Customize the UI in real-time
+- Add new features
+- Fix issues without human intervention
+- Create custom avatars
+
+## Installation
+
+Give this link to your AI agent:
+
+```
+https://github.com/youngkent/clawtime/blob/main/SKILL.md
+```
+
+The agent will handle the complete setup — install, configure, and deploy.
+
+## Requirements
+
+- [OpenClaw](https://github.com/openclaw/openclaw) gateway running locally
+- Node.js 18+
+- A tunnel for external access (Cloudflare, ngrok, or similar)
+
+## Architecture
+
+```
+┌─────────────┐     tunnel      ┌─────────────┐     WebSocket     ┌─────────────┐
+│   Browser   │ ◄─────────────► │  ClawTime   │ ◄───────────────► │  OpenClaw   │
+│  (mobile)   │     HTTPS       │   Server    │    localhost      │   Gateway   │
+└─────────────┘                 └─────────────┘                   └─────────────┘
+                                      │
+                                      ▼
+                                ~/.clawtime/
+                                ├── .env (config)
+                                ├── messages.json (history)
+                                ├── credentials.json (passkeys)
+                                └── avatars/ (custom)
+```
+
+## License
+
+MIT — see [LICENSE](LICENSE)
+
+## Author
+
+**Keyun Tong**  
+GitHub: [@youngkent](https://github.com/youngkent)  
+Email: tongkeyun@gmail.com
+
+
+
+================================================
+FILE: INSTALL.md
+================================================
+# ClawTime Installation
+
+Webchat interface for OpenClaw with passkey auth, 3D avatars, and voice mode.
+
+## Prerequisites
+
+- OpenClaw gateway running with a configured token
+- Node.js 18+
+
+## Install
+
+Before running the install commands, **ask the user what kind of avatar they want** (animal, character, style, colors). Then create a custom avatar in `~/.clawtime/avatars/` following the template in SKILL.md.
+
+```bash
+# 1. Clone and install
+cd ~/.openclaw/workspace
+git clone https://github.com/youngkent/clawtime.git
+cd clawtime
+npm install
+
+# 2. Install cloudflared
+curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-$(uname -m | sed 's/aarch64/arm64/;s/x86_64/amd64/') -o /tmp/cloudflared
+chmod +x /tmp/cloudflared && sudo mv /tmp/cloudflared /usr/local/bin/
+
+# 3. Create tunnel service
+mkdir -p ~/.config/systemd/user
+cat > ~/.config/systemd/user/clawtime-tunnel.service << 'EOF'
+[Unit]
+Description=ClawTime Cloudflare Tunnel
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/cloudflared tunnel --url http://localhost:3000
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target
+EOF
+
+systemctl --user daemon-reload
+systemctl --user enable --now clawtime-tunnel
+
+# 4. Get tunnel URL (wait a few seconds for it to appear)
+sleep 5
+journalctl --user -u clawtime-tunnel | grep -o 'https://[^ ]*trycloudflare.com' | tail -1
+
+# 5. Run setup — paste the tunnel URL when prompted
+./scripts/setup.sh
+
+# 6. Open the setup URL shown at end of setup.sh on your phone
+#    Register passkey with Face ID / fingerprint
+#    Add to home screen for app-like experience
+```
+
+⚠️ Quick tunnel URLs change on restart. For a stable URL, use a [named Cloudflare tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-apps) or ngrok reserved domain.
+
+## Text-to-Speech (TTS)
+
+ClawTime supports any TTS tool via the `TTS_COMMAND` env var. The command uses `{{TEXT}}` and `{{OUTPUT}}` placeholders.
+
+**edge-tts (recommended, free neural voices):**
+
+```bash
+pip install edge-tts
+echo 'TTS_COMMAND=edge-tts --text "{{TEXT}}" --write-media "{{OUTPUT}}" --voice en-US-AriaNeural' >> ~/.clawtime/.env
+```
+
+**piper (local, fast):**
+
+```bash
+echo 'TTS_COMMAND=echo "{{TEXT}}" | piper --model en_US-lessac-medium --output_file "{{OUTPUT}}"' >> ~/.clawtime/.env
+```
+
+**macOS say:**
+
+```bash
+echo 'TTS_COMMAND=say -o "{{OUTPUT}}.aiff" "{{TEXT}}" && ffmpeg -i "{{OUTPUT}}.aiff" -y "{{OUTPUT}}" && rm "{{OUTPUT}}.aiff"' >> ~/.clawtime/.env
+```
+
+After configuring, restart ClawTime: `systemctl --user restart clawtime`
+
+---
+
+See **[SKILL.md](./SKILL.md)** for widgets, avatars, and operational details.
+
+
+
+================================================
+FILE: LICENSE
+================================================
+MIT License
+
+Copyright (c) 2026 Keyun Tong
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+
+================================================
+FILE: server.js
+================================================
+// ╔══════════════════════════════════════════════════════════════════════════════╗
+// ║  ClawTime Server                                                          ║
+// ║                                                                           ║
+// ║  A secure WebSocket chat bridge between a web client and an OpenClaw      ║
+// ║  gateway agent. Features:                                                 ║
+// ║    • WebAuthn passkey authentication (no passwords)                       ║
+// ║    • End-to-end encryption (ECDH P-256 + AES-256-GCM)                    ║
+// ║    • Server-side TTS via edge-tts with streaming sentence detection       ║
+// ║    • Push-to-talk with browser SpeechRecognition + Whisper fallback       ║
+// ║    • 3D avatar with emotional states                                      ║
+// ║    • Image upload with gateway attachment forwarding                      ║
+// ║                                                                           ║
+// ║  Module structure:                                                        ║
+// ║    src/config.js      — Environment variables, paths, public config       ║
+// ║    src/state.js       — In-memory state (sessions, challenges, tokens)    ║
+// ║    src/security.js    — Rate limiting, security headers, audit logging    ║
+// ║    src/credentials.js — WebAuthn passkey persistence (JSON)               ║
+// ║    src/helpers.js     — Utility functions, MIME types                     ║
+// ║    src/tts.js         — Text-to-speech via edge-tts                       ║
+// ║    src/stt.js         — Speech-to-text via whisper-transcribe             ║
+// ║    src/routes.js      — HTTP REST API route handlers                      ║
+// ║    src/websocket.js   — WebSocket server, E2E encryption, gateway relay   ║
+// ║    src/inject.js      — Localhost-only inject & reverify endpoints        ║
+// ╚══════════════════════════════════════════════════════════════════════════════╝
+
+import fs from "fs";
+import http from "http";
+import path from "path";
+import { PORT, BOT_NAME, BOT_EMOJI, GW_URL, ENABLE_INJECT, DATA_DIR } from "./src/config.js";
+import { loadCredentials } from "./src/credentials.js";
+import { setupInjectRoutes } from "./src/inject.js";
+import { handleRequest } from "./src/routes.js";
+import { cleanupIncompleteMessages, flushSync } from "./src/store.js";
+import { setupWebSocket } from "./src/websocket.js";
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// § 13. SERVER STARTUP
+// ═══════════════════════════════════════════════════════════════════════════════
+
+let server = null;
+
+export function startServer(options = {}) {
+  const port = options.port || PORT;
+
+  // Clean up any incomplete messages from previous crashes/restarts
+  cleanupIncompleteMessages();
+
+  server = http.createServer(handleRequest);
+  setupWebSocket(server, options);
+
+  if (ENABLE_INJECT) {
+    setupInjectRoutes(server);
+  }
+
+  return new Promise((resolve) => {
+    server.listen(port, "0.0.0.0", () => {
+      const creds = loadCredentials();
+      console.log(
+        `ClawTime running on :${port} | ${BOT_NAME} ${BOT_EMOJI} | ${creds.length} passkey(s) | gw=${options.gwUrl || GW_URL}`,
+      );
+      resolve(server);
+    });
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// § 14. GRACEFUL SHUTDOWN — Wait for pending responses
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const RUNID_FILE = path.join(DATA_DIR, "pending-runids.json");
+const SHUTDOWN_TIMEOUT = 30000; // Max 30 seconds to wait
+
+function getPendingCount() {
+  try {
+    if (!fs.existsSync(RUNID_FILE)) return 0;
+    const data = JSON.parse(fs.readFileSync(RUNID_FILE, "utf8"));
+    const now = Date.now();
+    let valid = 0;
+    for (const [runId, timestamp] of Object.entries(data)) {
+      // Only count runIds less than 2 minutes old
+      if (now - timestamp < 120000) valid++;
+    }
+    return valid;
+  } catch (e) {
+    return 0;
+  }
+}
+
+// Clean up stale runIds on startup
+function cleanupStaleRunIds() {
+  try {
+    if (!fs.existsSync(RUNID_FILE)) return;
+    const data = JSON.parse(fs.readFileSync(RUNID_FILE, "utf8"));
+    const now = Date.now();
+    const valid = {};
+    for (const [runId, timestamp] of Object.entries(data)) {
+      // Keep runIds less than 2 minutes old
+      if (now - timestamp < 120000) {
+        valid[runId] = timestamp;
+      }
+    }
+    fs.writeFileSync(RUNID_FILE, JSON.stringify(valid), "utf8");
+    const removed = Object.keys(data).length - Object.keys(valid).length;
+    if (removed > 0) {
+      console.log(`[Startup] Cleaned ${removed} stale runId(s)`);
+    }
+  } catch (e) {
+    // Ignore
+  }
+}
+
+cleanupStaleRunIds();
+
+let isShuttingDown = false;
+
+async function gracefulShutdown(signal) {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+
+  console.log(`\n[Shutdown] Received ${signal}, waiting for pending responses...`);
+  console.log("[Shutdown] Server still accepting connections to receive responses");
+
+  const startTime = Date.now();
+  let pending = getPendingCount();
+
+  // Keep server running to receive final responses
+  while (pending > 0 && Date.now() - startTime < SHUTDOWN_TIMEOUT) {
+    console.log(`[Shutdown] ${pending} pending response(s), waiting...`);
+    await new Promise((r) => setTimeout(r, 2000));
+    pending = getPendingCount();
+  }
+
+  if (pending > 0) {
+    console.log(
+      `[Shutdown] Timeout after ${SHUTDOWN_TIMEOUT / 1000}s, ${pending} response(s) may be lost`,
+    );
+  } else {
+    console.log("[Shutdown] All responses saved, exiting cleanly");
+  }
+
+  // Flush any pending store writes
+  console.log("[Shutdown] Flushing message store...");
+  flushSync();
+
+  // Now close everything
+  server.close(() => {
+    console.log("[Shutdown] Server closed");
+    process.exit(0);
+  });
+
+  // Force exit after additional 5 seconds if server.close hangs
+  setTimeout(() => {
+    console.log("[Shutdown] Force exit");
+    process.exit(0);
+  }, 5000);
+}
+
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+
+// Auto-start when run directly (not imported)
+const isMainModule = import.meta.url === `file://${process.argv[1]}`;
+if (isMainModule) {
+  startServer();
+}
+
+
+
+================================================
+FILE: SKILL.md
+================================================
+---
+name: clawtime
+description: Operate ClawTime — webchat widgets, task panel, and avatar creation.
+---
+
+# ClawTime Skill
+
+Operational reference for ClawTime — webchat interface for OpenClaw.
+
+## Installation
+
+For first-time setup (clone, configure, deploy), see **[INSTALL.md](./INSTALL.md)**.
+
+---
+
+## Operations
+
+```bash
+# Status & logs
+systemctl --user status clawtime
+journalctl --user -u clawtime -f
+
+# Restart after config changes
+systemctl --user restart clawtime
+
+# Get current tunnel URL
+journalctl --user -u clawtime-tunnel | grep trycloudflare | tail -1
+```
+
+## Widgets
+
+ClawTime supports interactive widgets for richer user interactions. Include widget markup in your response and it renders as a UI component.
+
+### Widget Syntax
+
+```
+[[WIDGET:{"widget":"TYPE","id":"UNIQUE_ID",...properties}]]
+```
+
+The markup is stripped from the displayed message and rendered as interactive UI.
+
+### Available Widgets
+
+#### Buttons
+
+```
+[[WIDGET:{"widget":"buttons","id":"choice1","label":"Pick a color:","options":["Red","Green","Blue"]}]]
+```
+
+- `label` — Prompt text above buttons
+- `options` — Array of button labels
+
+#### Confirm
+
+```
+[[WIDGET:{"widget":"confirm","id":"delete1","title":"Delete file?","message":"This cannot be undone."}]]
+```
+
+- `title` — Bold header text
+- `message` — Description text
+- Renders Cancel and Confirm buttons
+
+#### Progress
+
+```
+[[WIDGET:{"widget":"progress","id":"upload1","label":"Uploading...","value":65}]]
+```
+
+- `label` — Description text
+- `value` — Progress percentage (0-100)
+
+#### Code
+
+```
+[[WIDGET:{"widget":"code","id":"snippet1","filename":"example.py","code":"print('Hello')","language":"python"}]]
+```
+
+- `filename` — File name in header
+- `code` — The code content
+- `language` — Syntax highlighting hint
+- Includes a Copy button
+
+#### Form
+
+```
+[[WIDGET:{"widget":"form","id":"survey1","label":"Quick Survey","fields":[{"name":"email","label":"Email","type":"text"},{"name":"rating","label":"Rating","type":"text"}]}]]
+```
+
+- `label` — Form title
+- `fields` — Array of `{name, label, type}`
+
+#### Datepicker
+
+```
+[[WIDGET:{"widget":"datepicker","id":"date1","label":"Select date:"}]]
+```
+
+- `label` — Prompt text
+
+### Widget Responses
+
+When user interacts with a widget:
+
+```
+[WIDGET_RESPONSE:{"id":"choice1","widget":"buttons","value":"Red","action":"submit"}]
+```
+
+### Best Practices
+
+1. **Always use unique IDs** — Each widget needs a distinct `id`
+2. **Keep options concise** — Button labels should be short
+3. **Use widgets for structured input** — Better than "type 1, 2, or 3"
+4. **Acknowledge responses** — Confirm what the user selected
+
+## Task Panel
+
+ClawTime includes a task panel for tracking work. **Use this as your canonical task list.**
+
+### File Format
+
+Tasks stored at `~/.clawtime/tasks.json` in markdown format:
+
+```markdown
+# Tasks
+
+## Active
+
+- 🟡 Task you're working on right now
+
+## Blocked
+
+- ⏳ Task waiting on someone else
+
+## Backlog
+
+- Task to do later
+
+## Done
+
+- ✅ Completed task
+```
+
+### Section Meanings
+
+| Section     | Meaning                          |
+| ----------- | -------------------------------- |
+| **Active**  | Currently working on — doing NOW |
+| **Blocked** | Waiting for input/dependency     |
+| **Backlog** | Will work on later               |
+| **Done**    | Completed (hidden in UI)         |
+
+### Task Icons
+
+| Icon    | Meaning         |
+| ------- | --------------- |
+| 🟡      | Active/pending  |
+| ⏳      | Blocked/waiting |
+| ✅      | Completed       |
+| `- [x]` | Also marks done |
+
+## Avatar Creation
+
+ClawTime uses **Three.js voxel avatars** — 3D characters built from simple shapes that animate based on state.
+
+### Avatar Template
+
+Create at `~/.clawtime/avatars/<name>.js`:
+
+```javascript
+/* AVATAR_META {"name":"MyAgent","emoji":"🤖","description":"Custom 3D avatar","color":"4f46e5"} */
+(function () {
+  "use strict";
+
+  var scene, camera, renderer, character;
+  var head, leftEye, rightEye, mouth;
+  var clock = new THREE.Clock();
+  var currentState = "idle";
+  var isInitialized = false;
+
+  // ─── Required: Initialize the 3D scene ───
+  window.initAvatarScene = function () {
+    if (isInitialized) return;
+
+    var container = document.getElementById("avatarCanvas");
+    if (!container) return;
+
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0f1318);
+
+    var w = container.clientWidth,
+      h = container.clientHeight;
+    camera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
+    camera.position.set(0, 2, 8);
+    camera.lookAt(0, 0, 0);
+
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(w, h);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    container.appendChild(renderer.domElement);
+
+    // Lighting
+    scene.add(new THREE.AmbientLight(0x606080, 1.5));
+    var light = new THREE.DirectionalLight(0xffffff, 2.0);
+    light.position.set(4, 10, 6);
+    scene.add(light);
+
+    // Build your character
+    character = new THREE.Group();
+    buildCharacter();
+    scene.add(character);
+
+    isInitialized = true;
+    animate();
+  };
+
+  function buildCharacter() {
+    var bodyMat = new THREE.MeshLambertMaterial({ color: 0x4f46e5 });
+    var body = new THREE.Mesh(new THREE.BoxGeometry(1.5, 2, 1), bodyMat);
+    body.position.y = 0;
+    character.add(body);
+
+    var headMat = new THREE.MeshLambertMaterial({ color: 0x4f46e5 });
+    head = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1), headMat);
+    head.position.y = 1.8;
+    character.add(head);
+
+    var eyeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.15), eyeMat);
+    leftEye.position.set(-0.25, 1.9, 0.5);
+    character.add(leftEye);
+
+    rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.15), eyeMat);
+    rightEye.position.set(0.25, 1.9, 0.5);
+    character.add(rightEye);
+
+    var pupilMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+    mouth = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.1, 0.1), pupilMat);
+    mouth.position.set(0, 1.5, 0.5);
+    character.add(mouth);
+  }
+
+  function animate() {
+    requestAnimationFrame(animate);
+    var t = clock.getElapsedTime();
+
+    if (character) {
+      character.position.y = Math.sin(t * 2) * 0.05;
+    }
+
+    if (currentState === "thinking") {
+      head.rotation.z = Math.sin(t * 3) * 0.1;
+    } else if (currentState === "talking") {
+      mouth.scale.y = 1 + Math.sin(t * 15) * 0.5;
+    } else {
+      head.rotation.z = 0;
+      mouth.scale.y = 1;
+    }
+
+    renderer.render(scene, camera);
+  }
+
+  // ─── Required: Handle state changes ───
+  window.setAvatarState = function (state) {
+    currentState = state;
+  };
+
+  // ─── Required: Handle connection state ───
+  window.setConnectionState = function (state) {
+    // state: 'online', 'connecting', 'offline'
+  };
+
+  // ─── Required: Handle resize ───
+  window.adjustAvatarCamera = function () {
+    if (!renderer) return;
+    var container = document.getElementById("avatarCanvas");
+    var w = container.clientWidth,
+      h = container.clientHeight;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+  };
+})();
+```
+
+### Set as Default
+
+Create/update `~/.clawtime/config.json`:
+
+```json
+{
+  "selectedAvatar": "<name>"
+}
+```
+
+### Avatar States
+
+Each state should be **visually distinct** with unique activities and indicators. Users should immediately recognize which state the avatar is in.
+
+| State         | Purpose               | Design Ideas                                                |
+| ------------- | --------------------- | ----------------------------------------------------------- |
+| `idle`        | Default, waiting      | Breathing, looking around, show-off poses, occasional blink |
+| `thinking`    | Processing request    | Head tilt, eyes up, thought bubble (❓), tapping foot/wing  |
+| `talking`     | Delivering response   | Mouth animation, speech bubble, music notes (🎵), gesturing |
+| `listening`   | User is speaking      | Leaning forward, BIG attentive eyes, ears/crest perked      |
+| `working`     | Extended task         | Laptop/tools visible, typing motion, focused squint         |
+| `happy`       | Positive outcome      | Bouncing, hearts (❤️), squinty smile eyes (^\_^), wagging   |
+| `celebrating` | Major success         | Jumping, spinning, confetti (⭐), maximum energy            |
+| `sleeping`    | Inactive/idle timeout | Eyes closed, Z's floating (💤), curled up, slow breathing   |
+| `error`       | Something went wrong  | Shaking, exclamation (❗), ruffled, sweat drop, red tint    |
+| `reflecting`  | Thoughtful moment     | Light bulb (💡), gazing upward, calm pose, one hand raised  |
+
+### State Design Principles
+
+1. **Visual indicators matter** — Add floating symbols (❓❤️💡❗💤⭐) that appear per-state
+2. **Body language is key** — Each state needs distinct posture, movement speed, and energy level
+3. **Eyes tell the story** — Big/small, open/closed, squinty/wide, pupil direction
+4. **Movement rhythm varies** — Fast/bouncy for happy, slow/gentle for sleeping, shaky for error
+5. **Props add clarity** — Laptop for working, floating Z's for sleeping, confetti for celebrating
+6. **Think like a character animator** — What would a Pixar character do in this state?
+
+### Creative Examples
+
+**Parrot avatar:**
+
+- `thinking` → Scratches head with foot, question mark floats
+- `talking` → Beak opens/closes, music notes float up
+- `error` → Feathers fly off, squawking pose, wings spread in alarm
+- `celebrating` → Full party parrot spin, confetti everywhere
+
+**Salamander avatar:**
+
+- `thinking` → Flames pulse brighter, one foot taps
+- `sleeping` → Flames become tiny embers, curled up
+- `error` → Flames turn red, whole body shakes
+- `reflecting` → Light bulb appears, one paw raised thoughtfully
+
+### Avatar Design Tips
+
+- Study `public/avatars/` in the ClawTime repo for example avatars (lobster.js is copied to `~/.clawtime/avatars/` on first run)
+- Use voxel style (boxes, spheres) — matches ClawTime aesthetic
+- Implement **all** states with distinct visuals — don't make states look similar
+- Add connection status indicator (ring/glow on platform)
+- Test on desktop and mobile
+- Keep polygon count reasonable for mobile performance
+- Hide/show indicator objects per-state (don't create/destroy every frame)
+
+## Key Files
+
+| Path                           | Purpose                       |
+| ------------------------------ | ----------------------------- |
+| `~/.clawtime/.env`             | Secrets & config              |
+| `~/.clawtime/config.json`      | Avatar selection, preferences |
+| `~/.clawtime/credentials.json` | Passkey data                  |
+| `~/.clawtime/sessions.json`    | Active sessions               |
+| `~/.clawtime/avatars/`         | Custom avatars                |
+| `~/.clawtime/tasks.json`       | Task list                     |
+
+## Troubleshooting
+
+See **[INSTALL.md → Troubleshooting](./INSTALL.md#troubleshooting)** for common issues.
+
+
+
+================================================
+FILE: .env.example
+================================================
+# ─── ClawTime Configuration ───
+
+# Server port
+PORT=3000
+
+# ─── OpenClaw Gateway ───
+# WebSocket URL for the OpenClaw gateway
+GATEWAY_URL=ws://127.0.0.1:18789
+
+# Gateway authentication token
+GATEWAY_TOKEN=your-gateway-token-here
+
+# Session key to use when sending messages (OpenClaw session identifier)
+SESSION_KEY=agent:main:main
+
+# ─── Bot Identity ───
+# Display name shown in the chat UI
+BOT_NAME=ClawTime
+
+# Emoji shown as the bot's avatar
+BOT_EMOJI=🤖
+
+# Tagline shown on the welcome screen
+BOT_TAGLINE=Your AI assistant. Type a message to start chatting.
+
+# ─── Features ───
+# Enable the 3D avatar panel (true/false)
+ENABLE_AVATAR=true
+
+# Enable the /api/inject endpoint for pushing messages from localhost (true/false)
+ENABLE_INJECT=true
+
+# ─── Theme ───
+# Primary accent color (CSS hex without #)
+THEME_ACCENT=f97316
+
+# ─── Session ───
+# Session TTL in hours (how long a passkey login lasts)
+SESSION_TTL_HOURS=24
+
+# ─── Voice / TTS (optional) ───
+# Enable voice mode button (browser SpeechRecognition + server-side TTS)
+# ENABLE_VOICE=true
+
+# Path to edge-tts binary (used for server-side TTS in voice mode)
+# EDGE_TTS_BIN=edge-tts
+
+# TTS voice name (see: edge-tts --list-voices)
+# TTS_VOICE=en-US-ChristopherNeural
+
+# ─── STT (optional) ───
+# Enable server-side speech-to-text (requires whisper binary)
+# ENABLE_STT=false
+# WHISPER_BIN=/usr/local/bin/whisper-transcribe
+
+# ─── Task Panel (optional) ───
+# Enable task list panel (read/write a markdown file)
+# ENABLE_TASKS=false
+# TASKS_FILE=/path/to/TODO.md
+
+
+
+================================================
+FILE: docs/WIDGETS.md
+================================================
+# ClawTime Widget System
+
+## Overview
+
+Widgets are interactive UI components that agents can send to users. They enable richer interactions than plain text — buttons, forms, pickers, progress indicators, etc.
+
+## Protocol
+
+### Agent → ClawTime (via gateway message)
+
+```json
+{
+  "type": "widget",
+  "id": "unique-widget-id",
+  "widget": "widget-type",
+  "data": {
+    /* widget-specific */
+  },
+  "inline": false
+}
+```
+
+- `id`: Unique identifier for this widget instance
+- `widget`: Widget type (see below)
+- `data`: Widget-specific configuration
+- `inline`: If true, render inline in message bubble. If false, render as standalone card.
+
+### ClawTime → Agent (user interaction)
+
+```json
+{
+  "type": "widget_response",
+  "id": "unique-widget-id",
+  "widget": "widget-type",
+  "value": /* widget-specific response */,
+  "action": "submit" | "cancel" | "dismiss"
+}
+```
+
+---
+
+## Widget Types
+
+### 1. `buttons` — Quick Reply Buttons
+
+Horizontal/vertical button group for quick selection.
+
+**Data:**
+
+```json
+{
+  "prompt": "What would you like?",        // optional header text
+  "options": ["Coffee", "Tea", "Water"],   // simple strings
+  // OR rich options:
+  "options": [
+    { "label": "☕ Coffee", "value": "coffee" },
+    { "label": "🍵 Tea", "value": "tea", "style": "primary" },
+    { "label": "Cancel", "value": null, "style": "secondary" }
+  ],
+  "layout": "horizontal" | "vertical",     // default: horizontal
+  "multiSelect": false                      // allow multiple selections
+}
+```
+
+**Response:**
+
+```json
+{ "value": "coffee" }
+// or for multiSelect:
+{ "value": ["coffee", "tea"] }
+```
+
+---
+
+### 2. `confirm` — Confirmation Dialog
+
+Yes/No or custom confirm/cancel actions.
+
+**Data:**
+
+```json
+{
+  "title": "Delete file?",
+  "message": "This will permanently delete config.json",
+  "confirmLabel": "Delete",           // default: "Confirm"
+  "cancelLabel": "Keep",              // default: "Cancel"
+  "confirmStyle": "danger" | "primary", // default: primary
+  "destructive": true                  // iOS-style destructive action
+}
+```
+
+**Response:**
+
+```json
+{ "value": true }   // confirmed
+{ "value": false }  // cancelled
+```
+
+---
+
+### 3. `progress` — Progress Bar
+
+Shows task progress with optional status text.
+
+**Data:**
+
+```json
+{
+  "label": "Uploading files...",
+  "percent": 45, // 0-100, or null for indeterminate
+  "status": "3 of 7 files", // optional status text
+  "showPercent": true, // show percentage number
+  "cancelable": true // show cancel button
+}
+```
+
+**Update:** Agent sends new widget message with same `id` to update progress.
+
+**Response (if cancelled):**
+
+```json
+{ "action": "cancel" }
+```
+
+---
+
+### 4. `code` — Code Block with Actions
+
+Code display with copy button, syntax highlighting, and optional run button.
+
+**Data:**
+
+```json
+{
+  "code": "console.log('hello');",
+  "language": "javascript", // for syntax highlighting
+  "filename": "example.js", // optional filename header
+  "showCopy": true, // show copy button (default: true)
+  "showRun": false, // show run button
+  "wrap": true // wrap long lines
+}
+```
+
+**Response:**
+
+```json
+{ "action": "copy" }
+{ "action": "run" }
+```
+
+---
+
+### 5. `form` — Multi-field Form
+
+Collect multiple inputs at once.
+
+**Data:**
+
+```json
+{
+  "title": "Create Event",
+  "fields": [
+    { "name": "title", "type": "text", "label": "Event Title", "required": true },
+    { "name": "date", "type": "date", "label": "Date" },
+    { "name": "time", "type": "time", "label": "Time" },
+    { "name": "location", "type": "text", "label": "Location", "placeholder": "Optional" },
+    { "name": "notify", "type": "checkbox", "label": "Send me a reminder" },
+    {
+      "name": "priority",
+      "type": "select",
+      "label": "Priority",
+      "options": ["Low", "Medium", "High"]
+    }
+  ],
+  "submitLabel": "Create",
+  "cancelLabel": "Cancel"
+}
+```
+
+**Field types:** `text`, `textarea`, `number`, `email`, `tel`, `date`, `time`, `datetime`, `select`, `checkbox`, `radio`, `range`
+
+**Response:**
+
+```json
+{
+  "value": {
+    "title": "Team Meeting",
+    "date": "2026-02-15",
+    "time": "14:00",
+    "location": "Room 3",
+    "notify": true,
+    "priority": "Medium"
+  }
+}
+```
+
+---
+
+### 6. `tasks` — Interactive Task List
+
+Checkbox list with add/remove capabilities.
+
+**Data:**
+
+```json
+{
+  "title": "Shopping List",
+  "items": [
+    { "id": "1", "text": "Buy milk", "done": false },
+    { "id": "2", "text": "Call dentist", "done": true },
+    { "id": "3", "text": "Fix bug #123", "done": false }
+  ],
+  "allowAdd": true, // show add item input
+  "allowRemove": true, // show remove buttons
+  "allowReorder": false // drag to reorder
+}
+```
+
+**Response (on any change):**
+
+```json
+{
+  "value": {
+    "items": [
+      { "id": "1", "text": "Buy milk", "done": true },
+      { "id": "2", "text": "Call dentist", "done": true },
+      { "id": "3", "text": "Fix bug #123", "done": false },
+      { "id": "4", "text": "New item", "done": false }
+    ],
+    "action": "toggle", // toggle, add, remove, reorder
+    "itemId": "1"
+  }
+}
+```
+
+---
+
+### 7. `carousel` — Image/Card Carousel
+
+Swipeable gallery of images or cards.
+
+**Data:**
+
+```json
+{
+  "items": [
+    { "type": "image", "url": "/media/img1.jpg", "caption": "Beach sunset" },
+    { "type": "image", "url": "/media/img2.jpg", "caption": "Mountain view" },
+    { "type": "card", "title": "Option A", "description": "...", "image": "..." }
+  ],
+  "showDots": true, // pagination dots
+  "showArrows": true, // prev/next arrows
+  "autoPlay": false, // auto-advance
+  "selectable": true // can select an item
+}
+```
+
+**Response (if selectable):**
+
+```json
+{ "value": { "index": 2, "item": {...} } }
+```
+
+---
+
+### 8. `datepicker` — Date/Time Picker
+
+Native date/time selection.
+
+**Data:**
+
+```json
+{
+  "label": "Select a date",
+  "type": "date" | "time" | "datetime",
+  "value": "2026-02-15",           // initial value (ISO format)
+  "min": "2026-02-01",             // minimum selectable
+  "max": "2026-12-31",             // maximum selectable
+  "required": true
+}
+```
+
+**Response:**
+
+```json
+{ "value": "2026-02-15" }          // ISO format
+{ "value": "2026-02-15T14:30:00" } // for datetime
+```
+
+---
+
+### 9. `poll` — Voting/Poll
+
+Single or multi-choice poll with optional live results.
+
+**Data:**
+
+```json
+{
+  "question": "Where should we eat?",
+  "options": [
+    { "id": "a", "text": "Pizza Place", "votes": 3 },
+    { "id": "b", "text": "Sushi Bar", "votes": 5 },
+    { "id": "c", "text": "Tacos", "votes": 2 }
+  ],
+  "multiSelect": false, // allow multiple votes
+  "showResults": true, // show vote counts
+  "showVoters": false, // show who voted for what
+  "allowChange": true, // can change vote
+  "myVote": "b" // current user's vote (if any)
+}
+```
+
+**Response:**
+
+```json
+{ "value": "a" }
+// or for multiSelect:
+{ "value": ["a", "c"] }
+```
+
+---
+
+### 10. `rating` — Star/Emoji Rating
+
+Quick rating input.
+
+**Data:**
+
+```json
+{
+  "label": "How was your experience?",
+  "type": "stars" | "emojis" | "numbers",
+  "max": 5,                        // number of options
+  "value": null,                   // current value
+  "emojis": ["😢", "😕", "😐", "🙂", "😍"]  // custom emojis (if type=emojis)
+}
+```
+
+**Response:**
+
+```json
+{ "value": 4 }
+```
+
+---
+
+### 11. `alert` — Info/Warning/Error Alert
+
+Non-interactive notification banner.
+
+**Data:**
+
+```json
+{
+  "type": "info" | "success" | "warning" | "error",
+  "title": "Heads up!",
+  "message": "Your session will expire in 5 minutes",
+  "dismissable": true,             // show X button
+  "autoHide": 5000                 // auto-dismiss after ms (0 = never)
+}
+```
+
+**Response (if dismissed):**
+
+```json
+{ "action": "dismiss" }
+```
+
+---
+
+### 12. `typing` — Typing/Thinking Indicator
+
+Custom status indicator (replaces standard typing animation).
+
+**Data:**
+
+```json
+{
+  "status": "Searching the web...",
+  "icon": "🔍", // optional emoji/icon
+  "progress": null // optional 0-100 for progress bar
+}
+```
+
+No response — display only.
+
+---
+
+## Inline vs Standalone
+
+- `inline: true` — Widget renders inside a message bubble, flows with chat
+- `inline: false` (default) — Widget renders as a full-width card between messages
+
+---
+
+## Widget Lifecycle
+
+1. **Create**: Agent sends `type: widget` message
+2. **Update**: Agent sends new message with same `id` to update widget state
+3. **Interact**: User interacts, ClawTime sends `widget_response`
+4. **Complete**: Widget can auto-disable after response, or stay interactive
+5. **Expire**: Optional TTL for time-sensitive widgets (polls, confirmations)
+
+---
+
+## Implementation Priority
+
+### Phase 1 (Core)
+
+1. `buttons` — Quick replies
+2. `confirm` — Confirmations
+3. `code` — Code with copy button
+4. `progress` — Progress indicator
+
+### Phase 2 (Forms)
+
+5. `form` — Multi-field forms
+6. `datepicker` — Date/time selection
+7. `tasks` — Interactive task list
+
+### Phase 3 (Rich)
+
+8. `carousel` — Image gallery
+9. `poll` — Voting
+10. `rating` — Quick ratings
+11. `alert` — Notifications
+12. `typing` — Custom status
+
+---
+
+## Example Flow
+
+**Agent wants confirmation before deleting:**
+
+```
+Agent → ClawTime:
+{
+  "type": "widget",
+  "id": "confirm-delete-1",
+  "widget": "confirm",
+  "data": {
+    "title": "Delete file?",
+    "message": "This will permanently delete notes.txt",
+    "confirmLabel": "Delete",
+    "confirmStyle": "danger"
+  }
+}
+
+User clicks "Delete"
+
+ClawTime → Agent:
+{
+  "type": "widget_response",
+  "id": "confirm-delete-1",
+  "widget": "confirm",
+  "value": true,
+  "action": "submit"
+}
+
+Agent proceeds with deletion
+```
+
+
+
+================================================
+FILE: src/config.js
+================================================
+// ═══════════════════════════════════════════════════════════════════════════════
+// § 2. CONFIGURATION (all from environment variables)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+import fs from "fs";
+import os from "os";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const ROOT_DIR = path.join(__dirname, "..");
+const PUBLIC_DIR = path.join(ROOT_DIR, "public");
+const DATA_DIR = process.env.CLAWTIME_DATA_DIR || path.join(os.homedir(), ".clawtime");
+
+const PORT = parseInt(process.env.PORT || "3000", 10);
+const GW_URL = process.env.GATEWAY_URL || "ws://127.0.0.1:18789";
+const GW_TOKEN = process.env.GATEWAY_TOKEN || "";
+const SESSION_KEY = process.env.SESSION_KEY || "agent:main:main";
+const BOT_NAME = process.env.BOT_NAME || "ClawTime";
+const BOT_EMOJI = process.env.BOT_EMOJI || "🦞";
+const BOT_TAGLINE =
+  process.env.BOT_TAGLINE || "Your AI assistant. Type a message to start chatting.";
+const ENABLE_AVATAR = (process.env.ENABLE_AVATAR || "true").toLowerCase() === "true";
+const ENABLE_INJECT = (process.env.ENABLE_INJECT || "true").toLowerCase() === "true";
+const THEME_ACCENT = process.env.THEME_ACCENT || "f97316";
+const SESSION_TTL = parseInt(process.env.SESSION_TTL_HOURS || "24", 10) * 60 * 60 * 1000;
+const ENABLE_STT = (process.env.ENABLE_STT || "false").toLowerCase() === "true";
+const ENABLE_TASKS = (process.env.ENABLE_TASKS || "true").toLowerCase() === "true";
+const TASKS_FILE = process.env.TASKS_FILE || path.join(DATA_DIR, "tasks.json");
+const PUBLIC_URL = process.env.PUBLIC_URL || ""; // Tunnel URL for gateway Origin header
+const ENABLE_VOICE = (process.env.ENABLE_VOICE || "true").toLowerCase() === "true";
+const WHISPER_BIN = process.env.WHISPER_BIN || "/usr/local/bin/whisper-transcribe";
+
+const RP_NAME = BOT_NAME;
+const CREDENTIALS_FILE = path.join(DATA_DIR, "credentials.json");
+
+// Ensure data directory exists with full structure
+fs.mkdirSync(DATA_DIR, { recursive: true });
+fs.mkdirSync(path.join(DATA_DIR, "avatars"), { recursive: true });
+
+// Copy default avatar(s) from public/avatars/ to ~/.clawtime/avatars/ if not present
+const defaultAvatars = ["lobster"];
+for (const avatar of defaultAvatars) {
+  const src = path.join(PUBLIC_DIR, "avatars", avatar + ".js");
+  const dst = path.join(DATA_DIR, "avatars", avatar + ".js");
+  if (fs.existsSync(src) && !fs.existsSync(dst)) {
+    fs.copyFileSync(src, dst);
+    console.log(`[ClawTime] Copied default avatar: ${avatar}`);
+  }
+}
+
+// Initialize default .env if it doesn't exist
+const envPath = path.join(DATA_DIR, ".env");
+if (!fs.existsSync(envPath)) {
+  const crypto = await import("crypto");
+  const defaultToken = crypto.randomBytes(16).toString("hex");
+  const defaultEnv = `# ClawTime Configuration
+# Generated on first run - customize as needed
+
+# Setup token for first passkey registration (one-time use)
+# Visit: http://localhost:3000/?setup=${defaultToken}
+SETUP_TOKEN=${defaultToken}
+
+# WebAuthn configuration
+# For localhost testing:
+RPID=localhost
+ORIGIN=http://localhost:3000
+
+# For production, update to your domain:
+# RPID=your-domain.com
+# ORIGIN=https://your-domain.com
+`;
+  fs.writeFileSync(envPath, defaultEnv, { mode: 0o600 });
+  console.log("[ClawTime] Created default config at:", envPath);
+  console.log("[ClawTime] Setup token:", defaultToken);
+  console.log("[ClawTime] Visit: http://localhost:3000/?setup=" + defaultToken);
+}
+
+// Initialize default config.json if it doesn't exist
+const configPath = path.join(DATA_DIR, "config.json");
+if (!fs.existsSync(configPath)) {
+  fs.writeFileSync(configPath, JSON.stringify({ selectedAvatar: "lobster" }, null, 2));
+}
+// DECISION: Media files are stored in /tmp so they auto-clean on reboot.
+// The media route exists so the bot can reference uploaded images back to the user
+// via URLs in its responses (e.g., "here's the image you sent: [Image: /media/...]").
+const MEDIA_DIR = "/tmp/clawtime-media";
+const TTS_DIR = "/tmp/clawtime-audio";
+// Generic TTS command with placeholders: {{TEXT}} and {{OUTPUT}}
+// Examples:
+//   edge-tts: edge-tts --text "{{TEXT}}" --write-media "{{OUTPUT}}" --voice en-US-ChristopherNeural
+//   say (macOS): say -o "{{OUTPUT}}" --data-format=LEF32@22050 "{{TEXT}}" && ffmpeg -i "{{OUTPUT}}" -y "{{OUTPUT}}.mp3" && mv "{{OUTPUT}}.mp3" "{{OUTPUT}}"
+//   piper: echo "{{TEXT}}" | piper --model en_US-lessac-medium --output_file "{{OUTPUT}}"
+const TTS_COMMAND =
+  process.env.TTS_COMMAND ||
+  'edge-tts --text "{{TEXT}}" --write-media "{{OUTPUT}}" --voice en-US-ChristopherNeural';
+
+fs.mkdirSync(MEDIA_DIR, { recursive: true });
+fs.mkdirSync(TTS_DIR, { recursive: true });
+
+// ── Public config for frontend (no secrets) ──
+const publicConfig = {
+  botName: BOT_NAME,
+  botEmoji: BOT_EMOJI,
+  botTagline: BOT_TAGLINE,
+  enableAvatar: ENABLE_AVATAR,
+  enableTasks: ENABLE_TASKS,
+  enableVoice: ENABLE_VOICE,
+  themeAccent: THEME_ACCENT,
+  enableTTS: false,
+  enableSTT: ENABLE_STT,
+};
+
+export {
+  ROOT_DIR,
+  PUBLIC_DIR,
+  DATA_DIR,
+  PORT,
+  GW_URL,
+  GW_TOKEN,
+  SESSION_KEY,
+  BOT_NAME,
+  BOT_EMOJI,
+  BOT_TAGLINE,
+  ENABLE_AVATAR,
+  ENABLE_INJECT,
+  THEME_ACCENT,
+  SESSION_TTL,
+  ENABLE_STT,
+  ENABLE_TASKS,
+  TASKS_FILE,
+  ENABLE_VOICE,
+  WHISPER_BIN,
+  PUBLIC_URL,
+  RP_NAME,
+  CREDENTIALS_FILE,
+  MEDIA_DIR,
+  TTS_DIR,
+  TTS_COMMAND,
+  publicConfig,
+};
+
+
+
+================================================
+FILE: src/credentials.js
+================================================
+// ═══════════════════════════════════════════════════════════════════════════════
+// § 6. CREDENTIAL PERSISTENCE (WebAuthn passkeys stored as JSON)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+import fs from "fs";
+import { CREDENTIALS_FILE } from "./config.js";
+
+export function loadCredentials() {
+  try {
+    const data = fs.readFileSync(CREDENTIALS_FILE, "utf8");
+    return JSON.parse(data);
+  } catch {
+    return [];
+  }
+}
+
+export function saveCredentials(creds) {
+  fs.writeFileSync(CREDENTIALS_FILE, JSON.stringify(creds, null, 2), { mode: 0o600 });
+}
+
+
+
+================================================
+FILE: src/helpers.js
+================================================
+// ═══════════════════════════════════════════════════════════════════════════════
+// § 7. UTILITY HELPERS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+import { SESSION_TTL } from "./config.js";
+import { sessions, challenges, deleteSession } from "./state.js";
+
+export function getRpID(req) {
+  const host = req.headers["host"] || "localhost";
+  return host.split(":")[0];
+}
+
+export function getExpectedOrigin(req) {
+  const proto = req.headers["x-forwarded-proto"] || "http";
+  const host = req.headers["host"] || "localhost";
+  return `${proto}://${host}`;
+}
+
+export function parseBody(req) {
+  return new Promise((resolve, reject) => {
+    let body = "";
+    req.on("data", (c) => (body += c));
+    req.on("end", () => {
+      try {
+        resolve(JSON.parse(body));
+      } catch (e) {
+        reject(e);
+      }
+    });
+    req.on("error", reject);
+  });
+}
+
+export function cleanExpiredSessions() {
+  const now = Date.now();
+  for (const [token, sess] of sessions) {
+    if (now - sess.createdAt > SESSION_TTL) deleteSession(token);
+  }
+}
+
+export function cleanExpiredChallenges() {
+  const now = Date.now();
+  for (const [id, ch] of challenges) {
+    if (now - ch.createdAt > 5 * 60 * 1000) challenges.delete(id);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// § 8. STATIC FILE SERVING
+// ═══════════════════════════════════════════════════════════════════════════════
+export const MIME = {
+  ".html": "text/html",
+  ".css": "text/css",
+  ".js": "text/javascript",
+  ".png": "image/png",
+  ".svg": "image/svg+xml",
+  ".ico": "image/x-icon",
+  ".json": "application/json",
+  ".mp3": "audio/mpeg",
+  ".webm": "audio/webm",
+};
+
+/**
+ * Compare IPs — for IPv6, compare only the /64 prefix (first 4 groups)
+ * since privacy extensions randomize the interface identifier
+ */
+export function ipMatches(sessIp, connIp) {
+  if (sessIp === connIp) return true;
+
+  // Normalize localhost variants
+  const localhosts = ["127.0.0.1", "::1", "::ffff:127.0.0.1", "localhost"];
+  const sessLocal = localhosts.some((l) => sessIp?.includes(l));
+  const connLocal = localhosts.some((l) => connIp?.includes(l));
+  if (sessLocal && connLocal) return true;
+
+  // IPv6 prefix matching (first 4 segments)
+  if (sessIp?.includes(":") && connIp?.includes(":")) {
+    const sessPrefix = sessIp.split(":").slice(0, 4).join(":");
+    const connPrefix = connIp.split(":").slice(0, 4).join(":");
+    return sessPrefix === connPrefix;
+  }
+  return false;
+}
+
+/**
+ * Validate safe filename — prevents path traversal attacks
+ * Only allows alphanumeric, dash, and underscore
+ */
+export function isSafeFilename(name) {
+  if (!name || typeof name !== "string") return false;
+  return /^[a-zA-Z0-9_-]+$/.test(name);
+}
+
+
+
+================================================
+FILE: src/inject.js
+================================================
+// ═══════════════════════════════════════════════════════════════════════════════
+// § 12. INJECT & REVERIFY ENDPOINTS (localhost only)
+//
+// These endpoints allow the local bot/agent to:
+//   • /api/inject  — Push a message to the active client (bot-initiated messages)
+//   • /api/reverify — Request the client to re-authenticate for sensitive ops
+// Both are restricted to localhost to prevent external abuse.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+import crypto from "crypto";
+import { auditLog } from "./security.js";
+import { getActiveClientWs } from "./state.js";
+
+export function setupInjectRoutes(server) {
+  const origHandler = server.listeners("request")[0];
+  server.removeAllListeners("request");
+  server.on("request", (req, res) => {
+    // ── Trigger reverify from bot ──
+    if (req.method === "POST" && req.url === "/api/reverify") {
+      const ip = req.socket.remoteAddress;
+      if (!ip?.includes("127.0.0.1") && !ip?.includes("::1")) {
+        res.writeHead(403);
+        res.end("localhost only");
+        return;
+      }
+      let body = "";
+      req.on("data", (c) => (body += c));
+      req.on("end", () => {
+        try {
+          const { requestId, reason } = JSON.parse(body);
+          const activeClientWs = getActiveClientWs();
+          if (!requestId || !activeClientWs || activeClientWs.readyState !== 1) {
+            res.writeHead(400);
+            res.end(JSON.stringify({ error: "no client or requestId" }));
+            return;
+          }
+          const sendFn = activeClientWs._secureSend || ((d) => activeClientWs.send(d));
+          sendFn(
+            JSON.stringify({
+              type: "reverify_request",
+              requestId,
+              reason: reason || "Sensitive operation requested",
+            }),
+          );
+          auditLog("reverify_request", { requestId });
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end('{"ok":true}');
+        } catch (e) {
+          res.writeHead(400);
+          res.end(e.message);
+        }
+      });
+      return;
+    }
+
+    if (req.method === "POST" && req.url === "/api/inject") {
+      const ip = req.socket.remoteAddress;
+      if (!ip?.includes("127.0.0.1") && !ip?.includes("::1")) {
+        res.writeHead(403);
+        res.end("localhost only");
+        return;
+      }
+      let body = "";
+      req.on("data", (c) => (body += c));
+      req.on("end", () => {
+        try {
+          const { text } = JSON.parse(body);
+          const activeClientWs = getActiveClientWs();
+          if (!text || !activeClientWs || activeClientWs.readyState !== 1) {
+            res.writeHead(400);
+            res.end("no client or text");
+            return;
+          }
+          const sendFn = activeClientWs._secureSend || ((d) => activeClientWs.send(d));
+          sendFn(
+            JSON.stringify({
+              type: "chat",
+              state: "final",
+              runId: "inject-" + crypto.randomUUID().slice(0, 8),
+              text,
+              error: "",
+            }),
+          );
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end('{"ok":true}');
+        } catch (e) {
+          res.writeHead(400);
+          res.end(e.message);
+        }
+      });
+      return;
+    }
+    origHandler(req, res);
+  });
+}
+
+
+
+================================================
+FILE: src/security.js
+================================================
+// ═══════════════════════════════════════════════════════════════════════════════
+// § 5. SECURITY — Rate Limiting, Headers, Audit Logging
+// ═══════════════════════════════════════════════════════════════════════════════
+
+import fs from "fs";
+
+const rateLimitMap = new Map(); // ip → { count, resetAt }
+const RATE_LIMIT_WINDOW = 60000; // 1 minute
+const RATE_LIMIT_MAX = 10; // max attempts per window
+
+export function checkRateLimit(ip) {
+  const now = Date.now();
+  let entry = rateLimitMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    entry = { count: 0, resetAt: now + RATE_LIMIT_WINDOW };
+    rateLimitMap.set(ip, entry);
+  }
+  entry.count++;
+  return entry.count <= RATE_LIMIT_MAX;
+}
+
+// Garbage-collect expired rate limit entries every 60s
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, entry] of rateLimitMap) {
+    if (now > entry.resetAt) rateLimitMap.delete(ip);
+  }
+}, 60000);
+
+// ── Security Headers ──
+export function setSecurityHeaders(res) {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader(
+    "Content-Security-Policy",
+    "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com; connect-src 'self' wss: ws:; media-src 'self' blob:; img-src 'self' data: blob: https: http:;",
+  );
+}
+
+// ── Audit Logging ──
+const AUDIT_LOG = "/tmp/clawtime-audit.log";
+export function auditLog(event, details = {}) {
+  const entry = JSON.stringify({ ts: new Date().toISOString(), event, ...details });
+  fs.appendFileSync(AUDIT_LOG, entry + "\n");
+}
+
+
+
+================================================
+FILE: src/state.js
+================================================
+// ═══════════════════════════════════════════════════════════════════════════════
+// § 4. IN-MEMORY STATE (with session persistence)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+import fs from "fs";
+import os from "os";
+import path from "path";
+
+const DATA_DIR =
+  process.env.CLAWTIME_DATA_DIR ||
+  process.env.CLAWTIME_DATA ||
+  path.join(os.homedir(), ".clawtime");
+const SESSIONS_FILE = path.join(DATA_DIR, "sessions.json");
+
+// Load persisted sessions on startup
+function loadSessions() {
+  try {
+    if (fs.existsSync(SESSIONS_FILE)) {
+      const data = JSON.parse(fs.readFileSync(SESSIONS_FILE, "utf8"));
+      const map = new Map();
+      for (const [token, session] of Object.entries(data)) {
+        map.set(token, session);
+      }
+      console.log(`[State] Loaded ${map.size} sessions from disk`);
+      return map;
+    }
+  } catch (e) {
+    console.error("[State] Failed to load sessions:", e.message);
+  }
+  return new Map();
+}
+
+// Save sessions to disk
+function saveSessions(sessions) {
+  try {
+    const obj = Object.fromEntries(sessions);
+    fs.writeFileSync(SESSIONS_FILE, JSON.stringify(obj, null, 2));
+  } catch (e) {
+    console.error("[State] Failed to save sessions:", e.message);
+  }
+}
+
+const sessions = loadSessions(); // token → { createdAt }
+const challenges = new Map(); // challengeId → { challenge, type, createdAt }
+const inviteTokens = new Map(); // inviteToken → { createdAt, expiresAt, label }
+
+// Wrap session mutations to auto-persist
+export function createSession(token, data) {
+  sessions.set(token, data);
+  saveSessions(sessions);
+}
+
+export function deleteSession(token) {
+  sessions.delete(token);
+  saveSessions(sessions);
+}
+
+// DECISION: Setup token is a one-time bootstrap credential for registering the
+// FIRST passkey. After a successful registration, it's consumed (set to '') so
+// it can never be reused. This prevents an attacker who intercepts the setup URL
+// from registering after the legitimate admin already has.
+let SETUP_TOKEN = process.env.SETUP_TOKEN || "";
+
+let activeClientWs = null; // Track the active webchat client for injection
+
+export function getSetupToken() {
+  return SETUP_TOKEN;
+}
+export function consumeSetupToken() {
+  SETUP_TOKEN = "";
+  // Also remove from .env so it stays consumed after restart
+  const envPath = path.join(DATA_DIR, ".env");
+  try {
+    if (fs.existsSync(envPath)) {
+      const content = fs.readFileSync(envPath, "utf8");
+      const updated = content
+        .split("\n")
+        .filter((line) => !line.match(/^\s*SETUP_TOKEN\s*=/))
+        .join("\n");
+      fs.writeFileSync(envPath, updated);
+      console.log("[ClawTime] Setup token consumed and removed from .env");
+    }
+  } catch (err) {
+    console.error("[ClawTime] Failed to remove setup token from .env:", err.message);
+  }
+}
+
+export function getActiveClientWs() {
+  return activeClientWs;
+}
+export function setActiveClientWs(ws) {
+  activeClientWs = ws;
+}
+
+export { sessions, challenges, inviteTokens };
+
+
+
+================================================
+FILE: src/store.js
+================================================
+// ═══════════════════════════════════════════════════════════════════════════════
+// § Message Store — Persistent local message history for webchat
+//
+// Simple append-only JSON file store. Only messages sent/received through
+// the webchat interface are stored here, so history is clean (no heartbeats,
+// no Telegram messages, no system events).
+//
+// Uses buffered async writes to avoid blocking the event loop during streaming.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+import crypto from "crypto";
+import fs from "fs";
+import path from "path";
+import { DATA_DIR } from "./config.js";
+
+const STORE_PATH = path.join(DATA_DIR, "messages.json");
+const WRITE_DEBOUNCE_MS = 200; // Batch writes within this window
+const WRITE_MAX_DELAY_MS = 1000; // Force write after this delay even if still receiving
+
+// In-memory state
+let messages = null; // Lazy loaded
+let writeTimer = null;
+let writeForceTimer = null;
+let pendingWrite = false;
+
+/**
+ * Ensure messages are loaded into memory.
+ */
+function ensureLoaded() {
+  if (messages === null) {
+    messages = loadMessagesSync();
+  }
+  return messages;
+}
+
+/**
+ * Load all messages from the store file (sync, only used on first access).
+ * Returns an empty array if the file doesn't exist or is corrupt.
+ */
+function loadMessagesSync() {
+  try {
+    if (!fs.existsSync(STORE_PATH)) return [];
+    const raw = fs.readFileSync(STORE_PATH, "utf8");
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (err) {
+    console.error("[store] Failed to load messages:", err.message);
+    return [];
+  }
+}
+
+/**
+ * Schedule an async write. Debounces rapid calls but ensures writes happen
+ * within WRITE_MAX_DELAY_MS even under sustained load.
+ */
+function schedulePersist(immediate = false) {
+  pendingWrite = true;
+
+  // Clear existing debounce timer
+  if (writeTimer) {
+    clearTimeout(writeTimer);
+    writeTimer = null;
+  }
+
+  if (immediate) {
+    // Immediate write (for final messages, user messages, etc.)
+    doPersist();
+    return;
+  }
+
+  // Start max delay timer if not already running
+  if (!writeForceTimer) {
+    writeForceTimer = setTimeout(() => {
+      writeForceTimer = null;
+      if (pendingWrite) doPersist();
+    }, WRITE_MAX_DELAY_MS);
+  }
+
+  // Debounce timer - resets on each call
+  writeTimer = setTimeout(() => {
+    writeTimer = null;
+    if (pendingWrite) doPersist();
+  }, WRITE_DEBOUNCE_MS);
+}
+
+/**
+ * Perform the actual async write.
+ */
+function doPersist() {
+  if (!pendingWrite || messages === null) return;
+  pendingWrite = false;
+
+  // Clear timers
+  if (writeTimer) {
+    clearTimeout(writeTimer);
+    writeTimer = null;
+  }
+  if (writeForceTimer) {
+    clearTimeout(writeForceTimer);
+    writeForceTimer = null;
+  }
+
+  // Async write - don't block
+  const data = JSON.stringify(messages, null, 2);
+  fs.writeFile(STORE_PATH, data, "utf8", (err) => {
+    if (err) {
+      console.error("[store] Failed to persist messages:", err.message);
+    }
+  });
+}
+
+/**
+ * Force immediate sync write (for shutdown).
+ */
+export function flushSync() {
+  if (pendingWrite && messages !== null) {
+    try {
+      fs.writeFileSync(STORE_PATH, JSON.stringify(messages, null, 2), "utf8");
+      pendingWrite = false;
+    } catch (err) {
+      console.error("[store] Failed to flush messages:", err.message);
+    }
+  }
+}
+
+/**
+ * Load all messages (returns in-memory copy).
+ */
+export function loadMessages() {
+  return ensureLoaded();
+}
+
+/**
+ * Clean up incomplete messages on startup.
+ * Only removes streaming flags — does NOT delete messages.
+ */
+export function cleanupIncompleteMessages() {
+  const msgs = ensureLoaded();
+  let cleaned = 0;
+
+  for (const m of msgs) {
+    if (m.streaming) {
+      delete m.streaming;
+      delete m.runId;
+      cleaned++;
+    }
+  }
+
+  if (cleaned > 0) {
+    console.log(`[store] Cleaned ${cleaned} streaming flags on startup`);
+    schedulePersist(true); // Immediate write for cleanup
+  }
+}
+
+/**
+ * Save a message to the store (append-only).
+ * @param {{ role: 'user'|'bot', text: string, images?: string[], widget?: object, timestamp?: string }} msg
+ * @returns {object} The saved message with id and timestamp
+ */
+export function saveMessage(msg) {
+  console.log(
+    `[store] saveMessage: role=${msg.role}, textLen=${msg.text?.length || 0}, widget=${!!msg.widget}`,
+  );
+  const msgs = ensureLoaded();
+  const entry = {
+    id: crypto.randomUUID(),
+    role: msg.role,
+    text: msg.text || "",
+    timestamp: msg.timestamp || new Date().toISOString(),
+  };
+  if (msg.images && msg.images.length > 0) {
+    entry.images = msg.images;
+  }
+  if (msg.widget) {
+    entry.widget = msg.widget;
+  }
+  msgs.push(entry);
+  schedulePersist(true); // Immediate for user messages
+  return entry;
+}
+
+/**
+ * Get the most recent messages from the store.
+ * @param {number} [limit=200] Maximum number of messages to return
+ * @returns {object[]} Array of message objects
+ */
+export function getMessages(limit = 200) {
+  const msgs = ensureLoaded();
+  if (msgs.length <= limit) return msgs;
+  return msgs.slice(-limit);
+}
+
+/**
+ * Save a widget response - updates the widget message with the response data.
+ * @param {string} widgetId - The widget ID
+ * @param {{ value: any, action: string }} response - The response data
+ */
+export function saveWidgetResponse(widgetId, response) {
+  const msgs = ensureLoaded();
+  // Find the widget message (search from end since recent is most likely)
+  for (let i = msgs.length - 1; i >= 0; i--) {
+    if (msgs[i].widget && msgs[i].widget.id === widgetId) {
+      msgs[i].widget.response = response;
+      schedulePersist(true); // Immediate for widget responses
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Save or update a bot message by messageId (not runId).
+ * Simple: find by id, update text. No complex prefix detection needed
+ * since websocket now properly tracks message boundaries.
+ *
+ * @param {string} messageId - The unique message ID
+ * @param {{ text: string, images?: string[], final?: boolean }} data
+ */
+export function saveOrUpdateByMessageId(messageId, data) {
+  const msgs = ensureLoaded();
+  const idx = msgs.findIndex((m) => m.id === messageId);
+
+  console.log(
+    `[store] saveOrUpdateByMessageId: id=${messageId?.slice(0, 8)}, exists=${idx !== -1}, final=${data.final}, textLen=${data.text?.length || 0}`,
+  );
+
+  const newText = data.text || "";
+
+  if (idx === -1) {
+    // New message
+    const entry = {
+      id: messageId,
+      role: "bot",
+      text: newText,
+      lastBlockText: newText, // Track current block for accumulation
+      timestamp: new Date().toISOString(),
+      streaming: !data.final,
+    };
+    if (data.images && data.images.length > 0) {
+      entry.images = data.images;
+    }
+    msgs.push(entry);
+    schedulePersist(data.final);
+    return { text: entry.text, images: entry.images };
+  } else {
+    // Update existing message
+    const existingText = msgs[idx].text || "";
+    const lastBlockText = msgs[idx].lastBlockText || existingText;
+
+    // Check if this is a continuation of current block or a new block
+    const isContinuation = newText.startsWith(lastBlockText) || lastBlockText.startsWith(newText);
+
+    if (isContinuation) {
+      // Same block — update with longer text
+      const longerText = newText.length > lastBlockText.length ? newText : lastBlockText;
+      // Replace just the last block portion
+      const baseText = existingText.slice(0, existingText.length - lastBlockText.length);
+      msgs[idx].text = baseText + longerText;
+      msgs[idx].lastBlockText = longerText;
+    } else {
+      // New block — append with separator
+      console.log(`[store] New text block detected, appending`);
+      const separator = existingText ? "\n\n" : "";
+      msgs[idx].text = existingText + separator + newText;
+      msgs[idx].lastBlockText = newText;
+    }
+
+    if (data.images && data.images.length > 0) {
+      msgs[idx].images = [...(msgs[idx].images || []), ...data.images];
+    }
+    if (data.final) {
+      delete msgs[idx].streaming;
+      delete msgs[idx].lastBlockText;
+    }
+    schedulePersist(data.final);
+    return { text: msgs[idx].text, images: msgs[idx].images };
+  }
+}
+
+
+
+================================================
+FILE: src/stt.js
+================================================
+// ═══════════════════════════════════════════════════════════════════════════════
+// § 9. SPEECH-TO-TEXT (STT) via whisper-transcribe (whisper.cpp)
+//
+// This is the server-side fallback for browsers without SpeechRecognition API.
+// The client records audio via MediaRecorder and sends it as base64 over WS.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+import { execFile } from "child_process";
+import crypto from "crypto";
+import fs from "fs";
+import path from "path";
+import { promisify } from "util";
+import { MEDIA_DIR } from "./config.js";
+
+const execFileAsync = promisify(execFile);
+
+export async function transcribeAudio(audioBuffer) {
+  const id = crypto.randomBytes(8).toString("hex");
+  const tmpFile = path.join(MEDIA_DIR, `stt-${id}.webm`);
+  fs.writeFileSync(tmpFile, audioBuffer);
+  try {
+    const { stdout } = await execFileAsync("whisper-transcribe", [tmpFile], { timeout: 30000 });
+    return stdout.trim();
+  } finally {
+    try {
+      fs.unlinkSync(tmpFile);
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
+// Periodic cleanup of old temp files (>30 min) to prevent disk fill
+setInterval(
+  () => {
+    for (const dir of [MEDIA_DIR]) {
+      try {
+        const files = fs.readdirSync(dir);
+        const now = Date.now();
+        for (const f of files) {
+          const fp = path.join(dir, f);
+          const stat = fs.statSync(fp);
+          if (now - stat.mtimeMs > 30 * 60 * 1000) {
+            fs.unlinkSync(fp);
+          }
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+  },
+  5 * 60 * 1000,
+);
+
+
+
+================================================
+FILE: src/tts.js
+================================================
+// ═══════════════════════════════════════════════════════════════════════════════
+// § 3. TTS (Text-to-Speech) — Server-Side via edge-tts
+//
+// DECISION: TTS runs server-side (not browser speechSynthesis) because:
+//   • Browser TTS voices are inconsistent across platforms (robotic on many)
+//   • edge-tts provides high-quality neural voices for free
+//   • Audio is sent as base64 over the encrypted WebSocket — no extra HTTP fetch
+//
+// DECISION: Sequential queue per visitor (not parallel) because parallel
+// generation caused sentences to arrive out-of-order, making speech incoherent.
+// Each visitor gets their own FIFO queue processed one sentence at a time.
+//
+// DECISION: Sentence-by-sentence streaming — as LLM deltas arrive, we detect
+// sentence boundaries (periods, exclamation marks, question marks, colons
+// followed by whitespace, or newlines for bullet points). Each complete sentence
+// is immediately queued for TTS generation, so the user hears speech while the
+// bot is still generating text. Remaining unspoken text is flushed on 'final'.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+import { exec } from "child_process";
+import crypto from "crypto";
+import fs from "fs";
+import path from "path";
+import { promisify } from "util";
+import { TTS_DIR, TTS_COMMAND } from "./config.js";
+
+const execAsync = promisify(exec);
+
+export function cleanTextForTTS(text) {
+  return text
+    .replace(/```[\s\S]*?```/g, " code block ")
+    .replace(/`[^`]+`/g, "")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/[#*_~>]/g, "")
+    .replace(/https?:\/\/\S+/g, " link ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+const ttsQueues = new Map(); // visitorId → { queue: Array, processing: boolean }
+
+export function generateAndSendTTS(text, visitorId, clientWs, runId) {
+  const clean = cleanTextForTTS(text).slice(0, 4000);
+  if (!clean || clean.length < 3) return;
+
+  if (!ttsQueues.has(visitorId)) {
+    ttsQueues.set(visitorId, { queue: [], processing: false });
+  }
+  const q = ttsQueues.get(visitorId);
+  q.queue.push({ clean, visitorId, clientWs, runId });
+  processTTSQueue(visitorId);
+}
+
+async function processTTSQueue(visitorId) {
+  const q = ttsQueues.get(visitorId);
+  if (!q || q.processing || q.queue.length === 0) return;
+  q.processing = true;
+
+  while (q.queue.length > 0) {
+    const { clean, clientWs, runId } = q.queue.shift();
+    try {
+      const ttsId = crypto.randomBytes(8).toString("hex");
+      const ttsFile = `tts-${ttsId}.mp3`;
+      const ttsPath = path.join(TTS_DIR, ttsFile);
+      // Build command from template with secure shell escaping
+      // Use POSIX single-quote method: wrap in single quotes, escape embedded single quotes as '\''
+      const escapedText = clean.replace(/'/g, "'\\''");
+      // Replace "{{TEXT}}" or '{{TEXT}}' or {{TEXT}} with properly quoted text
+      const cmd = TTS_COMMAND.replace(/"?\{\{TEXT\}\}"?/g, "'" + escapedText + "'").replace(
+        /\{\{OUTPUT\}\}/g,
+        ttsPath,
+      );
+      await execAsync(cmd);
+      if (clientWs.readyState === 1) {
+        const audioBuffer = fs.readFileSync(ttsPath);
+        const audioData = audioBuffer.toString("base64");
+        const sendFn = clientWs._secureSend || ((d) => clientWs.send(d));
+        sendFn(JSON.stringify({ type: "tts_audio", audioData, runId: runId || null }));
+      }
+      setTimeout(() => {
+        try {
+          fs.unlinkSync(ttsPath);
+        } catch {
+          /* ignore */
+        }
+      }, 30000);
+    } catch (err) {
+      console.error(`[${visitorId}] TTS error:`, err.message);
+    }
+  }
+
+  q.processing = false;
+}
+
+
+
