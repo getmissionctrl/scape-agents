@@ -64,6 +64,23 @@ export function useGateway(options?: UseGatewayOptions) {
     }
   }, [connect])
 
+  // Reconnect immediately when tab regains focus
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        const ws = wsRef.current
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+          // Reset backoff and reconnect immediately
+          attemptRef.current = 0
+          if (reconnectRef.current) clearTimeout(reconnectRef.current)
+          connect()
+        }
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange)
+  }, [connect])
+
   const sendMessage = useCallback((text: string, images?: string[]) => {
     const ws = wsRef.current
     if (ws && ws.readyState === WebSocket.OPEN) {

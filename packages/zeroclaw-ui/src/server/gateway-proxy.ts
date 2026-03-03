@@ -21,12 +21,19 @@ export function createGatewayProxy(gatewayUrl: string) {
     let clientWs: WSContext | null = null
     let upstream: WebSocket | null = null
     const buffer: string[] = []
+    let pingInterval: ReturnType<typeof setInterval> | null = null
 
     return {
       onOpen(_event, ws) {
         clientWs = ws
 
         upstream = new WebSocket(wsUrl)
+
+        // Send pings every 30s to keep the connection alive
+        pingInterval = setInterval(() => {
+          try { (clientWs as any)?.raw?.ping() } catch { /* ignore */ }
+          try { upstream?.ping() } catch { /* ignore */ }
+        }, 30_000)
 
         upstream.on('open', () => {
           // Flush any messages buffered before upstream connected
@@ -68,6 +75,10 @@ export function createGatewayProxy(gatewayUrl: string) {
       },
 
       onClose() {
+        if (pingInterval) {
+          clearInterval(pingInterval)
+          pingInterval = null
+        }
         clientWs = null
         if (upstream && upstream.readyState === WebSocket.OPEN) {
           upstream.close()

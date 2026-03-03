@@ -73,6 +73,10 @@ const server = serve({ fetch: app.fetch, port: config.port }, (info) => {
   console.log(`[zeroclaw-ui] Server running on :${info.port}`)
 })
 
+// Keep WebSocket connections alive through idle periods
+;(server as any).keepAliveTimeout = 255_000
+;(server as any).headersTimeout = 260_000
+
 injectWebSocket(server)
 
 // Graceful shutdown
