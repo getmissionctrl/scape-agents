@@ -89,9 +89,14 @@
                  /home/operator/assets/diagnostics \
                  /home/operator/assets/templates
 
-        # Copy secrets .env if injected by orchestrator
-        if [ -f /run/scape/secrets/openoutreach-env ]; then
-          cp /run/scape/secrets/openoutreach-env /home/operator/assets/.env
+        # Build .env from API key secret + hardcoded model config
+        if [ -f /run/scape/secrets/openrouter-api-key ]; then
+          KEY=$(cat /run/scape/secrets/openrouter-api-key)
+          printf '%s\n' \
+            "LLM_API_KEY=$KEY" \
+            "AI_MODEL=minimax/minimax-m2.5" \
+            "LLM_API_BASE=https://openrouter.ai/api/v1" \
+            > /home/operator/assets/.env
           chmod 600 /home/operator/assets/.env
         fi
 
@@ -136,7 +141,7 @@
     resources.cpu = 400;
     resources.disk = 20480;
     egress = "allow-all";
-    secrets = [ "openoutreach-env" ];
+    secrets = [ "openrouter-api-key" ];
     services = [
       { name = "admin"; port = 8000; path = "/"; type = "http"; }
     ];
