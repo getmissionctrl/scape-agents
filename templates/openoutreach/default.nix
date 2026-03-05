@@ -90,8 +90,8 @@
                  /home/operator/assets/templates
 
         # Build .env from API key secret + hardcoded model config
-        if [ -f /run/scape/secrets/openrouter-api-key ]; then
-          KEY=$(cat /run/scape/secrets/openrouter-api-key)
+        if [ -f /run/scape/secrets/OPENROUTER_API_KEY ]; then
+          KEY=$(cat /run/scape/secrets/OPENROUTER_API_KEY)
           printf '%s\n' \
             "LLM_API_KEY=$KEY" \
             "AI_MODEL=minimax/minimax-m2.5" \
@@ -141,7 +141,7 @@
     resources.cpu = 400;
     resources.disk = 20480;
     egress = "allow-all";
-    secrets = [ "openrouter-api-key" ];
+    secrets = [ "OPENROUTER_API_KEY" ];
     services = [
       { name = "admin"; port = 8000; path = "/"; type = "http"; }
     ];
