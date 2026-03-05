@@ -94,6 +94,7 @@
         python-sandbox = mkTemplate "python-sandbox";
         duckdb-analyst = mkTemplate "duckdb-analyst";
         openclaw = mkTemplate "openclaw";
+        openoutreach = mkTemplate "openoutreach";
       };
 
       packages.${system} = {
@@ -106,6 +107,7 @@
         python-sandbox = self.nixosConfigurations.python-sandbox.config.microvm.declaredRunner;
         duckdb-analyst = self.nixosConfigurations.duckdb-analyst.config.microvm.declaredRunner;
         openclaw = self.nixosConfigurations.openclaw.config.microvm.declaredRunner;
+        openoutreach = self.nixosConfigurations.openoutreach.config.microvm.declaredRunner;
       };
 
       # Template flake outputs for `nix flake init`
@@ -125,6 +127,10 @@
         openclaw = {
           path = ./templates/openclaw;
           description = "OpenClaw AI assistant with gateway web service";
+        };
+        openoutreach = {
+          path = ./templates/openoutreach;
+          description = "OpenOutreach LinkedIn automation daemon with VNC";
         };
       };
 
