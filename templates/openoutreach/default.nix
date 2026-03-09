@@ -41,9 +41,11 @@
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJI4iaVjJcoj4La4dcWYDRyjlyDADrL3kbZ9Eux6I6s2 ben@scape"
   ];
 
-  # Podman as OCI container runtime
+  # Podman as OCI container runtime — store images on persistent volume
+  # (rootfs is a read-only erofs + tmpfs overlay, not enough space for OCI layers)
   virtualisation.podman.enable = true;
   virtualisation.oci-containers.backend = "podman";
+  virtualisation.containers.storage.settings.storage.graphroot = "/home/operator/containers/storage";
 
   # --- VM-level display services ---
   # Xvfb provides the X display; x11vnc exposes it on port 5900
@@ -87,7 +89,8 @@
                  /home/operator/assets/cookies \
                  /home/operator/assets/models \
                  /home/operator/assets/diagnostics \
-                 /home/operator/assets/templates
+                 /home/operator/assets/templates \
+                 /home/operator/containers/storage
 
         # Build .env from API key secret + hardcoded model config
         if [ -f /run/scape/secrets/OPENROUTER_API_KEY ]; then
