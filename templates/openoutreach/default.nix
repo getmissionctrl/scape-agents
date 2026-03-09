@@ -89,8 +89,16 @@
                  /home/operator/assets/cookies \
                  /home/operator/assets/models \
                  /home/operator/assets/diagnostics \
-                 /home/operator/assets/templates \
+                 /home/operator/assets/templates/prompts \
                  /home/operator/containers/storage
+
+        # Seed default prompt templates (volume mount shadows the image's
+        # baked-in copies; migration 0005 reads followup2.j2 unconditionally)
+        for f in followup2.j2 qualify_lead.j2 search_keywords.j2; do
+          if [ ! -f "/home/operator/assets/templates/prompts/$f" ]; then
+            touch "/home/operator/assets/templates/prompts/$f"
+          fi
+        done
 
         # Build .env from API key secret + hardcoded model config
         if [ -f /run/scape/secrets/OPENROUTER_API_KEY ]; then
