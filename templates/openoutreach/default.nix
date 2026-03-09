@@ -131,7 +131,7 @@
     # Skip the container's own Xvfb/x11vnc — we run them on the VM host
     cmd = [
       "bash" "-c"
-      "python manage.py migrate --no-input && python manage.py setup_crm && python manage.py"
+      "python manage.py migrate --no-input && python manage.py setup_crm && python manage.py runserver 0.0.0.0:8000 & python manage.py"
     ];
   };
 
