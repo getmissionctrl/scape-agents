@@ -67,7 +67,7 @@
     after = [ "xvfb.service" ];
     requires = [ "xvfb.service" ];
     serviceConfig = {
-      ExecStart = "${pkgs.x11vnc}/bin/x11vnc -display :99 -listen 127.0.0.1 -rfbport 5900 -forever -nopw";
+      ExecStart = "${pkgs.x11vnc}/bin/x11vnc -display :99 -listen 127.0.0.1 -rfbport 5900 -shared -forever -nopw";
       Restart = "always";
       RestartSec = "2s";
     };
