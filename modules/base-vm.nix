@@ -200,6 +200,76 @@
     btop
   ];
 
+  # tmux configuration for operator (core settings, no TPM plugins)
+  environment.etc."skel/.config/tmux/tmux.conf".text = ''
+    set-option -g default-terminal 'tmux-256color'
+    set-option -g terminal-overrides ',xterm-256color:RGB'
+
+    set -g prefix ^A
+    set -g base-index 1
+    set -g detach-on-destroy off
+    set -g escape-time 0
+    set -g history-limit 1000000
+    set -g renumber-windows on
+    set -g set-clipboard on
+    set -g status-position top
+    set -g mouse on
+    setw -g mode-keys vi
+    set -g pane-active-border-style 'fg=magenta,bg=default'
+    set -g pane-border-style 'fg=brightblack,bg=default'
+
+    # Keybindings
+    bind ^X lock-server
+    bind ^C new-window -c "#{pane_current_path}"
+    bind ^D detach
+    bind H previous-window
+    bind L next-window
+    bind r command-prompt "rename-window %%"
+    bind R source-file ~/.config/tmux/tmux.conf
+    bind ^A last-window
+    bind ^W list-windows
+    bind w list-windows
+    bind z resize-pane -Z
+    bind ^L refresh-client
+    bind | split-window
+    bind s split-window -v -c "#{pane_current_path}"
+    bind v split-window -h -c "#{pane_current_path}"
+    bind h select-pane -L
+    bind j select-pane -D
+    bind k select-pane -U
+    bind l select-pane -R
+    bind -r -T prefix , resize-pane -L 20
+    bind -r -T prefix . resize-pane -R 20
+    bind -r -T prefix - resize-pane -D 7
+    bind -r -T prefix = resize-pane -U 7
+    bind : command-prompt
+    bind * setw synchronize-panes
+    bind c kill-pane
+    bind x swap-pane -D
+    bind S choose-session
+    bind K send-keys "clear"\; send-keys "Enter"
+    bind-key -T copy-mode-vi v send-keys -X begin-selection
+  '';
+
+  # Copy skel tmux config into operator's home on first boot
+  systemd.services.operator-tmux-config = {
+    description = "Set up tmux config for operator";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "home-operator.mount" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      ExecStart = pkgs.writeShellScript "setup-tmux" ''
+        dir=/home/operator/.config/tmux
+        if [ ! -f "$dir/tmux.conf" ]; then
+          mkdir -p "$dir"
+          cp /etc/skel/.config/tmux/tmux.conf "$dir/tmux.conf"
+          chown -R operator:operator /home/operator/.config
+        fi
+      '';
+    };
+  };
+
   # Enable systemd lingering for operator so user services persist
   systemd.tmpfiles.rules = [
     "d /var/lib/systemd/linger 0755 root root -"
