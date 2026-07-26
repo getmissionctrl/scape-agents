@@ -75,9 +75,15 @@ terminalHandler conn = do
     shellArgs         -- args
     (80, 24)          -- initial size (cols, rows)
 
-  -- Bridge PTY <-> WebSocket, cleanup on exit
+  -- Bridge PTY <-> WebSocket, cleanup on exit.
+  -- withPingThread sends a WebSocket ping every 30s so the connection carries
+  -- traffic even when the terminal is idle. Without it, the proxy->agent leg
+  -- (which has no other keepalive — the console proxy only pings the browser
+  -- leg, and Bun's client WebSocket can't ping) gets dropped by the VM network
+  -- path's idle timeout, surfacing as spurious terminal disconnects.
   finally
-    (race_ (ptyToWs pty conn) (wsToPty conn pty))
+    (WS.withPingThread conn 30 (pure ()) $
+       race_ (ptyToWs pty conn) (wsToPty conn pty))
     (cleanup pty ph conn)
 
 -- | Forward PTY output to WebSocket

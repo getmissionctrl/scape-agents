@@ -50,9 +50,12 @@ runStream state cmdId cmdState conn = do
   -- Register subscriber
   addSubscriber state cmdId subscriber
 
-  -- Run bidirectional forwarding, cleanup on exit
+  -- Run bidirectional forwarding, cleanup on exit.
+  -- withPingThread (30s) keeps an idle command stream's proxy->agent leg alive,
+  -- same rationale as the terminal handler.
   finally
-    (race_ (forwardOutput outChan) (forwardInput (stdinChan cmdState)))
+    (WS.withPingThread conn 30 (pure ()) $
+       race_ (forwardOutput outChan) (forwardInput (stdinChan cmdState)))
     (removeSubscriber state cmdId subscriber)
   where
     -- Forward output from command to WebSocket
