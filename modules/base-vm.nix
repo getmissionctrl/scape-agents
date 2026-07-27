@@ -176,6 +176,21 @@
   system.stateVersion = "24.05";
   i18n.defaultLocale = "C.UTF-8";
 
+  # Default terminal width for shells that have no TTY to size themselves from.
+  # Agent tools (e.g. the hermes gateway) spawn non-interactive `bash -c`
+  # children with no PTY, so width-aware programs (Click, ls, tput) fall back to
+  # $COLUMNS and, when it is unset, to a hard-coded 80 — truncating CLI
+  # help/tables. Set it in two places so every context is covered across all
+  # templates:
+  #   * environment.variables       -> login / interactive shells (SSH, web term)
+  #   * systemd DefaultEnvironment   -> every service and the shells it spawns;
+  #     this is what the agent tool-call shells inherit (profile/.bashrc are not
+  #     sourced by non-interactive service children).
+  # Interactive PTY shells still auto-track the real width via checkwinsize, so
+  # this only supplies a sane default when there is no terminal to measure.
+  environment.variables.COLUMNS = "150";
+  systemd.settings.Manager.DefaultEnvironment = "COLUMNS=150";
+
   # Unprivileged operator user for running all user workloads
   users.users.operator = {
     isNormalUser = true;
