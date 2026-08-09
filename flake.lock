@@ -1,5 +1,25 @@
 {
   "nodes": {
+    "anydoc": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1786256744,
+        "narHash": "sha256-kaAzCCT/IrQsCydXmjlb0QoSaUc1ZF5hi5heFDxXWbs=",
+        "owner": "getmissionctrl",
+        "repo": "anydoc",
+        "rev": "206f079d5e1e93b9db4ef372fef5102d574f66e6",
+        "type": "github"
+      },
+      "original": {
+        "owner": "getmissionctrl",
+        "repo": "anydoc",
+        "type": "github"
+      }
+    },
     "blueprint": {
       "inputs": {
         "nixpkgs": [
@@ -121,6 +141,7 @@
     },
     "root": {
       "inputs": {
+        "anydoc": "anydoc",
         "llm-agents": "llm-agents",
         "microvm": "microvm",
         "natskell": "natskell",

@@ -18,6 +18,14 @@
       url = "github:getmissionctrl/llm-agents.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # anydoc: document -> Markdown CLI (offline). Consumed by base-vm.nix via
+    # `self.inputs.anydoc`, so every template (here and in scape-templates,
+    # which passes this flake as `self`) gets it without arg threading.
+    anydoc = {
+      url = "github:getmissionctrl/anydoc";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = { self, nixpkgs, natskell, microvm, llm-agents, ... }:

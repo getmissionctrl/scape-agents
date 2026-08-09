@@ -203,7 +203,7 @@
   users.groups.operator.gid = 1000;
 
   # Minimal userland for command execution
-  environment.systemPackages = with pkgs; [
+  environment.systemPackages = (with pkgs; [
     busybox
     coreutils
     bash
@@ -213,6 +213,11 @@
     tmux
     util-linux
     btop
+  ]) ++ [
+    # anydoc: convert any office/PDF document to Markdown, fully offline — the
+    # bare Rust exe (no node runtime). Resolved through `self` (= scape-agents)
+    # so it lands in every template that imports this base module.
+    self.inputs.anydoc.packages.${pkgs.system}.default
   ];
 
   # tmux configuration for operator (core settings, no TPM plugins)
